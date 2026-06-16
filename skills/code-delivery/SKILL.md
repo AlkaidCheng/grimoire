@@ -34,6 +34,8 @@ When in doubt between inline and zip: if you'd otherwise be pasting more than tw
 
 **Edits.** Make the changes directly on the files in the repo. Do not paste the full edited file back into chat as a code block — the user already has the file on disk. Short excerpts in chat are fine when they clarify a specific point; the full change lives in the diff.
 
+**Commands need a one-line summary.** Whenever you show the user a shell command to run or confirm, precede it with a one-line (preferably) executive summary of what it does, so they can judge it without parsing the command itself — e.g. "Push the branch and open the PR:" above a `git push … && gh pr create …` block. This applies to every command you hand back: git, build, install, or one-off.
+
 **Git operations require authorization.** Do not run `git checkout -b`, `git add`, `git commit`, `git push`, or `git rm` unprompted. After the edits are in place and the pre-delivery checks have passed, offer to run the git steps and wait for an explicit yes. A typical offer looks like:
 
 > Edits are in place and tests pass. I can create the branch `fix/windows-lock-offset`, stage the four changed files, commit with the message below, and push — say the word and I'll run it. Otherwise, you have everything you need to do it by hand.
