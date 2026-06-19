@@ -243,12 +243,14 @@ The *substance* behind such a note is often legitimate — it's the *reference* 
 
 The good version conveys the same plan — follow-up style work is out of scope — without naming a tool only the author's toolchain knows. The same applies to branch names and titles: `polish/strip-llm-artifacts` leaks; `polish/docstrings-stale-docs-dead-helpers` describes the work.
 
+**This rule extends to committed source — docstrings and code comments — not only the four text artifacts above.** A docstring or comment is permanent reference documentation read by every future maintainer; it must describe the code in professional, third-person engineering prose, never read as a conversation with a developer or a record of how the change was authored. The same forbidden references apply (toolchain/skill names, the assistant, the conversation, generation meta-commentary), plus the conversational tells the `code-polishing` skill catalogs (Category 1): first-person "we did not expect", editorial flourishes ("the lever that turns…", "the row that matters"), asides addressed to the reader, and history-narration of an edit in place of describing current behavior. Write what the code *is and does*, not what changed or why-for-you. The dedicated in-source sweep is owned by `code-polishing`; this rule makes it part of delivery so artifacts don't ship needing it.
+
 **The test:** would a teammate who just joined, reading only the repo and the PR, understand every word? If a term makes sense only to someone who watched the change being generated, delete it before delivering.
 
 **Strict rule — never expose the developer's personal, sensitive, or device information.** A hard requirement on every delivery, checked the same way as the process-leak rule above. No committed file (source, **test**, config, docs), commit message, branch name, PR title, or PR description may contain:
 
-- **Personal identifiers** — the developer's real name, username, handle, or email, or any value derived from them. A test path like `/envs/alkaid`, a home directory like `/Users/jdoe/...`, or an env value carrying a username all leak identity.
-- **Device / environment specifics** — absolute machine paths, usernames embedded in paths, hostnames, IP addresses, or other host details.
+- **Personal identifiers** — the developer's real name, username, handle, or email, or any value derived from them. A test path like `/envs/<username>`, a home directory like `/Users/jdoe/...`, or an env value carrying a username all leak identity.
+- **Device / environment specifics** — absolute machine paths, usernames embedded in paths, hostnames, IP addresses, the developer's specific machine or hardware configuration (CPU model, filesystem, exact specs), or other host details. Keep performance notes generic ("the local dev machine", "the target node"); a benchmark printing host details at *runtime* is fine, baking them into prose is not.
 - **Secrets** — tokens, API keys, passwords, credentials.
 
 Use neutral placeholders instead: `/opt/env`, `/path/to/project`, `/data`, `example.com`, `$HOME`, a generic `user`. This applies to **test fixtures and example configs** as much as to prose — a string in a unit test ships to everyone who clones the repo. Deliberate, maintainer-approved attribution (a `LICENSE` copyright holder, a `pyproject` author field the maintainer chose) is exempt; when unsure whether a value is approved, ask before publishing.
@@ -367,7 +369,8 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 **Universal — applies on both surfaces:**
 
 - [ ] **No artifact reveals the toolchain** — branch name, PR title, commit messages, and PR description contain no skill/tool names, assistant references, conversation references ("as discussed", "you asked"), or generation meta-commentary ("if wanted", "auto-generated"); every term resolves for a teammate who only sees the repo
-- [ ] **No personal/sensitive/device info** — no real names, usernames, emails, home/device paths, hostnames, IPs, or secrets in any committed file (including tests and configs), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
+- [ ] **Committed docstrings and comments read as professional reference prose** — they describe what the code is and does, with no conversational artifacts (first-person "we", editorial flourishes, reader asides), no edit-history narration in place of behavior, and none of the toolchain/assistant/conversation references above
+- [ ] **No personal/sensitive/device info** — no real names, usernames, emails, home/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (including tests, configs, and docstrings/comments), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
 - [ ] Body explains *what was wrong* and *why this change*, not just *what changed* — in the **PR description**, not the commit
 - [ ] **Commit messages are concise** — purpose readable at a glance from the subject; no error dumps, essays, or measurements in the commit body (that goes in the PR description)
