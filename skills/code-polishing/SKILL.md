@@ -17,6 +17,7 @@ The "make it look like a human wrote it on the first try" pass. Iteration leaves
 5. Encapsulation violations (cross-module access to `_private` names)
 6. Naming consistency across an API surface
 7. API renames for coherence
+8. Personal / sensitive / device information in committed files
 
 **This skill does NOT cover** (language-specific — hand off):
 - Formatting (Black, clang-format, PEP 8): → `python-code-review` / `cpp-code-review`
@@ -46,7 +47,7 @@ Group findings by the seven categories above. The category determines the commit
 
 The order matters because each commit must leave the tree green for the next:
 
-1. **Pure deletions** — LLM artifacts, PR refs, dead comments. Diff is removal-only. Zero behavior change. Almost no review needed.
+1. **Pure deletions** — LLM artifacts, PR refs, personal/device info (Category 8), dead comments. Diff is removal-only. Zero behavior change. Almost no review needed.
 2. **Stale-doc fixes** — docstring/comment updates. Still no behavior change, but the reviewer has to confirm the new wording matches the code.
 3. **Dead-code removal** — unused imports, branches, helpers. Behavior unchanged *if you're right that it's dead*. Reviewer has to confirm.
 4. **Encapsulation fixes** — replace cross-module `_private` access with a proper API. May involve adding a small public function. Tests should pass without changes.
@@ -68,6 +69,8 @@ When the change is documentation-only and touches no source the test suite impor
 
 ### Category 1: LLM / iteration artifacts
 
+**Standard:** a docstring or comment is professional reference documentation, not a conversation between an assistant and the developer. It describes what the code *is and does* in third-person engineering prose. Anything that reads as chat — addressing the reader, narrating the authoring, editorializing — is an artifact, regardless of whether it contains a flagged keyword.
+
 The tell-tale shapes:
 - Comments addressing a past or imagined interlocutor: "as we discussed", "per your earlier note", "following our conversation", "as mentioned"
 - Comments that explain *why we changed it* rather than *what the code does*: "Used to be X, but now Y because…"
@@ -75,6 +78,7 @@ The tell-tale shapes:
 - Iteration-suffixed names: `module_new.py`, `parse_v2`, `_old`, `_legacy` when no documented versioning policy applies
 - TODOs referencing earlier turns: `# TODO: as you said, switch this to ...`
 - Apologetic or stylistic noise: `# Note: this works`, `# Yes, this is intentional`, `# Sorry about the magic number here`
+- Editorial / marketing flourishes and reader asides that don't describe the code: "the lever that turns X into Y", "the row that matters", "this is the clever bit", "fall back rather than guess", "you'll notice". State the mechanism plainly instead — "uses copy_file_range, which reflink filesystems complete near-metadata-only", "falls back to the materializing write".
 
 Detection:
 ```bash
@@ -175,6 +179,18 @@ There's no grep for "your verb choice is inconsistent" — this is a reading-and
 
 Often falls out of category 6 — once you've spotted the inconsistency, the rename is the fix. Make the rename in one commit per API surface (don't bundle unrelated renames). Touch every call site, including tests, benchmarks, examples, and docs.
 
+### Category 8: Personal / sensitive / device information
+
+A committed file — source, **test**, config, docstring, comment, or doc — ships to everyone who clones the repo, so none of it should carry the developer's personal or device details:
+
+- **Personal identifiers** — a real name, username, handle, or email, or a value derived from one (a home-directory path, an env or fixture name built from a username).
+- **Device / environment specifics** — absolute machine paths, hostnames, IPs, or the developer's specific machine/hardware configuration (CPU model, filesystem, exact specs). Keep performance prose generic — "the local dev machine", "the target node" — never the hardware model. A benchmark that prints host details at *runtime* is fine; baking them into a docstring or comment is not.
+- **Secrets** — tokens, API keys, passwords, credentials.
+
+Replace with neutral placeholders (`/path/to/project`, `$HOME`, `example.com`, a generic `user`). Maintainer-approved attribution (a `LICENSE` holder, a chosen `pyproject` author field) is exempt; when unsure whether a value is approved, ask before shipping.
+
+This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, and prose for anything that identifies the author or their machine, rather than relying on a brittle keyword list (and never hard-code the developer's identifiers into the scan or this skill). It is removal-only and behavior-neutral, so it rides in the same first commit as the other artifact removals (Category 1/2).
+
 ## Commit message style for polishing
 
 Subject prefix: `[polish]` (or `chore:` if the project uses Conventional Commits). The prefix is the signal to reviewers: "no behavior change, light review".
@@ -237,6 +253,8 @@ A 6-commit polishing PR on a Python+C++ package:
 ## Quick checklist before sending a polishing PR
 
 - [ ] Two reading passes done: grep-driven + eyes-driven
+- [ ] Docstrings/comments read as professional reference prose — no conversational artifacts, reader asides, editorial flourishes, or edit-history narration (Category 1)
+- [ ] No personal/sensitive/device info in any committed file — identifiers, machine/hardware specs, host paths, secrets (Category 8)
 - [ ] Findings categorized; one commit per category
 - [ ] Commits ordered least-risky → most-risky
 - [ ] Full test suite + lint + type-check pass after each commit
