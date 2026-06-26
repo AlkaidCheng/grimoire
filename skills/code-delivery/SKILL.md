@@ -38,7 +38,7 @@ When in doubt between inline and zip: if you'd otherwise be pasting more than tw
 
 **Git operations require authorization.** Do not run `git checkout -b`, `git add`, `git commit`, `git push`, or `git rm` unprompted. After the edits are in place and the pre-delivery checks have passed, offer to run the git steps and wait for an explicit yes. A typical offer looks like:
 
-> Edits are in place and tests pass. I can create the branch `fix/windows-lock-offset`, stage the four changed files, commit with the message below, and push — say the word and I'll run it. Otherwise, you have everything you need to do it by hand.
+> Edits are in place and tests pass. I can create the branch `fix/windows-file-locking`, stage the four changed files, commit with the message below, and push — say the word and I'll run it. Otherwise, you have everything you need to do it by hand.
 
 If the user says yes, run the operations one batch at a time and surface what was actually run (branch created, files staged, commit SHA). If the change spans multiple commits, pause between commits so the user can review each one before the next is made.
 
@@ -54,7 +54,9 @@ Applies to both surfaces. Run whatever gates the project has, even if the user d
 - C/C++ extensions: rebuild from clean, look for warnings under `-Wall -Wextra`
 - If there's a `Makefile` / `CMakeLists.txt` / `pyproject.toml` script that bundles checks, prefer that
 
-Mention the results in one or two lines after the deliverable. Don't pad the response with a wall of test output — `254 passed in 1.48s; ruff/black/mypy clean` is enough. If anything failed, show the failure verbatim.
+Mention the results in one or two lines after the deliverable. Don't pad the response with a wall of test output — `the suite passes in 1.5s; ruff/black/mypy clean` is enough. If anything failed, show the failure verbatim.
+
+When a change *provably cannot* affect a gate — a docs-only edit, or a new script/benchmark file the test suite never imports — say so with the reason ("docs-only; the suite doesn't import this — unaffected") instead of running the full suite for show. Only claim "unaffected" when you can point at *why* (no imported source changed); otherwise run it.
 
 ## Cleaning up before zipping
 
@@ -76,7 +78,7 @@ Then `zip -r <name>.zip <folder> -x '*.pyc' -x '*/__pycache__/*'` and confirm wi
 
 ````
 ```python
-def truncate_orphan_bytes(...):
+def normalize_records(...):
     ...
 ```
 ````
@@ -84,7 +86,7 @@ def truncate_orphan_bytes(...):
 ````
 ```cpp
 template <typename T>
-void gather_indexed_typed(...) { ... }
+void merge_sorted(...) { ... }
 ```
 ````
 
@@ -94,7 +96,7 @@ PYTHONPATH=src python3 -m pytest tests/ -q
 ```
 ````
 
-Don't use `markdown` as the tag for actual source code — that's reserved for things like commit messages and PR descriptions (Mode 3). Show the change in context if the file is large enough that the user might lose their place. Below the block, one line of verification: "Builds clean on Linux, 254 tests pass."
+Don't use `markdown` as the tag for actual source code — that's reserved for things like commit messages and PR descriptions (Mode 3). Show the change in context if the file is large enough that the user might lose their place. Below the block, one line of verification: "Builds clean on Linux, the tests pass."
 
 Don't preface with "Here is the code:" or close with "Hope this helps." The block speaks for itself.
 
@@ -132,6 +134,8 @@ When the work decomposes into multiple PRs (stacked or independent), deliver ONL
 - Do not pre-generate later PRs' patches, zips, edits, branch names, or text — they go stale the moment the user amends PR 1.
 - When the user responds (acceptance, edits, node-validated numbers, or a change of direction), fold that in first; only then prepare the next PR, stacked on the accepted state.
 - Doing the *analysis* for later PRs up front is fine and useful (so the plan is visible); the deliverables come one per turn.
+
+**Stacked PRs and rebasing onto an advancing base.** When a PR builds on an unmerged one, open it with `--base <that-branch>` (not the main branch) so its diff shows only the delta, and note that it retargets to the main branch when the base merges. When the base *does* merge, rebase with `git rebase --onto <main> <old-base> <branch>` — this replays only your commits whether the base landed as a merge commit or a squash, where a plain `git rebase <main>` can replay the base's already-merged commits and conflict. Generate the review diff with the three-dot range (`base...head`) so it matches the host's PR view even after the main branch advances past the fork point.
 
 **Language tag per element:**
 
@@ -181,7 +185,7 @@ The structure of a PR draft response is:
 
 ### Per-commit zips
 
-**(Claude.ai only.)** Each commit gets its own zip. **The zip's internal paths must be relative to the repository root — no leading repo-name directory.** The files sit at the exact paths they occupy in the repo (`src/colstore/reader.py`, `tests/test_foo.py`), so the user can unpack them from the repo root and have them land in place:
+**(Claude.ai only.)** Each commit gets its own zip. **The zip's internal paths must be relative to the repository root — no leading repo-name directory.** The files sit at the exact paths they occupy in the repo (`src/<pkg>/reader.py`, `tests/test_foo.py`), so the user can unpack them from the repo root and have them land in place:
 
 ```bash
 cd <repo>                       # repository root
@@ -195,11 +199,11 @@ git commit -F <commit-2-message-saved-to-file>
 # ...
 ```
 
-This is why each commit's files must be self-contained and repo-root-relative: the user extracts them in sequence onto a clean tree with `unzip -o ... -d .` and stages with `git add .`. **Do not** wrap the files in a top-level package/repo directory inside the zip — a zip containing `colstore/src/colstore/reader.py` would extract to `<repo>/colstore/src/...`, the wrong place. Build the zip from a staging dir whose top level *is* the repo root:
+This is why each commit's files must be self-contained and repo-root-relative: the user extracts them in sequence onto a clean tree with `unzip -o ... -d .` and stages with `git add .`. **Do not** wrap the files in a top-level package/repo directory inside the zip — a zip containing `<repo-name>/src/<pkg>/reader.py` would extract to `<repo>/<repo-name>/src/...`, the wrong place. Build the zip from a staging dir whose top level *is* the repo root:
 
 ```bash
-mkdir -p stage/src/colstore stage/tests
-cp <working>/src/colstore/reader.py stage/src/colstore/reader.py
+mkdir -p stage/src/<pkg> stage/tests
+cp <working>/src/<pkg>/reader.py stage/src/<pkg>/reader.py
 cp <working>/tests/test_foo.py       stage/tests/test_foo.py
 ( cd stage && zip -r /mnt/user-data/outputs/pr_<branch>/commit_1_<slug>.zip src tests )
 ```
@@ -208,14 +212,14 @@ Verify with `unzip -l` that the first entries are `src/...` / `tests/...`, never
 
 ### Deletions
 
-**Universal principle.** List every removed path. Never leave a deletion implicit — the commit must actually drop the file. The commit message's file list should mark them too (e.g. `* src/colstore/old_module.py   (removed)`).
+**Universal principle.** List every removed path. Never leave a deletion implicit — the commit must actually drop the file. The commit message's file list should mark them too (e.g. `* src/<pkg>/old_module.py   (removed)`).
 
 **(Claude.ai only.)** A zip cannot express a deletion — extracting it only adds or overwrites files. If a commit removes files, you must call them out explicitly in the chat with the exact removal commands, run from the repo root, alongside the unzip step for that commit:
 
 ```bash
 cd <repo>
 unzip -o commit_3_<slug>.zip -d .          # adds/updates files
-git rm src/colstore/old_module.py src/cpp/dead_kernel.cpp   # removals the zip can't carry
+git rm src/<pkg>/old_module.py src/cpp/dead_kernel.cpp   # removals the zip can't carry
 git add .
 git commit -F <commit-3-message-saved-to-file>
 ```
@@ -231,13 +235,14 @@ Branch names, commit messages, PR titles, and PR descriptions are read by teamma
 **Strict rule — never leak the production process.** This is a hard requirement, checked on every delivery. No branch name, commit message, PR title, or PR description may reference:
 
 - **Internal tooling, skills, or process names** — e.g. `python-code-review`, `cpp-code-review`, `code-delivery`, "the polishing skill", "the review pass", "per the skill". A reviewer cannot resolve these names; they read as noise and expose the text as machine-generated.
+- **Internal decomposition labels** — "Band A", "Phase 2", "Round 3", "the cleanup pass", "step 1 of the refactor". These leak most often because they read like natural section headers, yet a reviewer has no plan to map them onto. A PR named by its *position in your plan* ("Band A: docs cleanup") must be reworded to the *change itself* ("Remove stale docs and dead code").
 - **The assistant or its nature** — no "as an AI", "I generated this", "this was produced by", "Claude", "the model", or any first-person-assistant framing.
 - **The conversation that produced the change** — no "as discussed", "as you asked", "per your request", "you wanted me to", "the user requested".
 - **Meta-commentary about generation** — no "auto-generated", "drafted for you", "if wanted", "let me know if you'd like", "hope this helps".
 
 The *substance* behind such a note is often legitimate — it's the *reference* that's forbidden. Rephrase in plain engineering terms:
 
-> Bad: "A language-specific style pass (`python-code-review` for `_common.py`, `cpp-code-review` for `gather.cpp`) can follow if wanted."
+> Bad: "A language-specific style pass (`python-code-review` for `utils.py`, `cpp-code-review` for `kernel.cpp`) can follow if wanted."
 >
 > Good: "Scope is limited to structural cleanup with no behavior change; formatting and idiom-level changes are intentionally left to a separate pass."
 
@@ -285,18 +290,18 @@ Rules:
 
 `````
 ````markdown
-[kernel] Spell __restrict__ via COLSTORE_RESTRICT for MSVC
+[kernel] Spell __restrict__ via a portable macro for MSVC
 
 MSVC uses __restrict (no trailing underscores); gate the spelling on
-_MSC_VER so the Windows wheel builds. No behavior change elsewhere.
+_MSC_VER so the Windows build succeeds. No behavior change elsewhere.
 
 Files:
-  * include/colstore/gather.hpp     (COLSTORE_RESTRICT macro)
-  * src/cpp/gather.cpp              (6 call sites)
+  * include/<pkg>/kernel.hpp     (PKG_RESTRICT macro)
+  * src/cpp/kernel.cpp           (6 call sites)
 ````
 `````
 
-The full story — the exact MSVC error (`error C3646: 'base': unknown override specifier`), why the macro mirrors the prior `COLSTORE_PREFETCH` pattern, the vectorization-preservation argument — lives in the PR description. The commit just says what it does.
+The full story — the exact MSVC error (`error C3646: 'base': unknown override specifier`), why the macro mirrors the project's existing portable-builtin pattern, the vectorization-preservation argument — lives in the PR description. The commit just says what it does.
 
 Things to drop:
 - "This commit..." preambles
@@ -321,28 +326,28 @@ Add or rename sections to match the project's own template if one exists in `.gi
 
 | Failure | Why it now passes |
 |---|---|
-| `test_compact_blocked_by_active_writer` | Lock now at offset 2^62; reader doesn't see it. |
+| `test_locked_resource_blocks_writer` | Lock now at offset 2^62; reader doesn't see it. |
 | 8× `os.replace` PermissionError | `lock_fd` closed before rename. |
 
 **Be specific, not generic.** Compare:
 
 > Bad: "Fixed Windows compatibility issues with file locking."
 >
-> Good: "msvcrt.locking on byte 0 blocks reads of byte 0 from any other handle, including a fresh open in the same process — that broke readers (info, schema, ColStoreReader) while a writer was active. Moved the lock to offset 1<<62; nothing reads at that offset, so the contract holds."
+> Good: "msvcrt.locking on byte 0 blocks reads of byte 0 from any other handle, including a fresh open in the same process — that broke every reader path while a writer was active. Moved the lock to offset 1<<62; nothing reads at that offset, so the contract holds."
 
 **Don't restate the diff.** The reviewer will read it. The description explains what the diff *doesn't* show — the mechanism, the tradeoffs, the ruled-out alternatives, the failure mode that motivated the change.
 
-## Examples from this conversation
+## Worked examples
 
 ### Inline fix example (Claude.ai)
 **(Claude.ai only.)** The MSVC `__restrict__` → `__restrict` swap was small (one header + six call sites in one .cpp), but it spanned a header + source file. We zipped it (focused fix zip) rather than inlining because the user was going to apply it across a build boundary and a focused zip is more reliable than copying two code blocks into the right files. Rule of thumb: **if applying the change touches more than one file, zip it.**
 
 ### Iterative fix example (Claude.ai, Mode 2)
-**(Claude.ai only.)** The Windows lock-offset fix touched four files (`_lock.py`, `writer.py`, `compaction.py`, `format.py`). Pattern:
+**(Claude.ai only.)** The Windows lock-offset fix touched four files (`locking.py`, `writer.py`, `compactor.py`, `store.py`). Pattern:
 1. Made the change
 2. Ran Linux build + tests + ruff + black + mypy (one combined `bash_tool` call)
 3. Cleaned artifacts
-4. Built two zips: `win_lock_fix.zip` (just the four files) and `colstore_windows.zip` (whole package refreshed)
+4. Built two zips: `win_lock_fix.zip` (just the four files) and `<pkg>_windows.zip` (whole package refreshed)
 5. Called `present_files` with the focused zip first
 6. Wrote a body with: diagnosis table, root cause with doc citation, the two independent fixes, verification numbers, expected-after-merge table, and a quad-backtick commit message at the end
 
@@ -351,7 +356,7 @@ Same four-file Windows lock-offset fix, on the Claude Code surface:
 1. Edited the four files directly in the repo with the editing tools
 2. Ran the project's check suite (`pytest -q`, `ruff check`, `black --check`, `mypy --strict`) from the repo
 3. Wrote the PR draft text in chat: branch name in a plain fence, the commit message in a `markdown` block, PR title in a plain fence with `[fix]` tag, PR description in a `markdown` block with `## Summary` / `## Motivation` / `## Root cause` / `## Testing`
-4. Offered: "Edits are in place and tests pass. I can create `fix/windows-lock-offset`, stage the four files, commit with the message above, and push — say the word." Did not run any git commands until the user confirmed.
+4. Offered: "Edits are in place and tests pass. I can create `fix/windows-file-locking`, stage the four files, commit with the message above, and push — say the word." Did not run any git commands until the user confirmed.
 5. After confirmation, ran `git checkout -b`, `git add <paths>`, `git commit -F -` with the message piped in, and `git push -u origin HEAD`, surfacing the resulting branch and SHA.
 
 The chat output is mostly the *text artifacts* — no large code blocks, since the edits live in the working tree.
