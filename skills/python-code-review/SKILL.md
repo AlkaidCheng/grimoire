@@ -36,6 +36,7 @@ Add type hints to every function signature (parameters and return). They double 
 - **Use built-in generics on Python 3.9+**: `list[str]`, `dict[str, int]`, `tuple[int, ...]`. Import from `typing` only on older versions.
 - **Use `X | None` on Python 3.10+** instead of `Optional[X]`. Same convention for unions.
 - **Define `TypeAlias` at module level** for complex repeated types so signatures stay readable.
+- **A quoted-string `TypeAlias` must be self-contained.** When you quote a forward reference to break a circular import, inline it to concrete types (`"str | os.PathLike[str] | Reader"`), not to another module-level alias name. `typing.get_type_hints()` — used by dataclasses, Pydantic, attrs, and documentation tooling — re-evaluates the string in the *importing* module's namespace, which may not contain that alias, raising `NameError` at runtime. This passes the formatter, the linter, the type checker, and the test suite; the only thing that catches it is calling `get_type_hints()` on a function that consumes the alias from another module.
 - **Annotate locals only when the type is not obvious**. The type checker can infer `count = 0`. Annotate `cache: dict[str, list[float]] = {}`.
 - **Use `typing.Protocol`** for structural subtyping when the interface is small — preferred over ABCs for duck-typed APIs.
 

@@ -57,13 +57,15 @@ Don't combine categories. Don't sneak a behavioral fix into a polishing commit. 
 
 ### 4. Verify after every commit
 
-Run the full test suite, lint, and type-check after each commit. State the result in the commit body: `254 tests pass; no behavior change.` This is the contract that makes a polishing PR easy to review.
+Run the full test suite, lint, and type-check after each commit. State the result in the commit body: `the suite passes; no behavior change.` This is the contract that makes a polishing PR easy to review.
 
 Two traps specific to polishing edits:
 - **A comment-only change to a compiled language (C/C++/Cython) still needs a rebuild.** "It's just a comment" is exactly when a stray edit to a `//` line slips into code, or the file fails to recompile. Rebuild and confirm the object code is unchanged (a comment edit must not move a single instruction).
 - **Deletions and renames perturb formatting.** Removing the last function in a file can leave a trailing blank line; renaming to a longer identifier can push a call past the column limit. Run the formatter (black / clang-format) as part of verification — and re-run lint after it, since the formatter's fix is itself part of the commit.
 
-When the change is documentation-only and touches no source the test suite imports (e.g. benchmark-script docstrings), say so plainly — "library suite unaffected; N pass" — rather than implying the edit was exercised.
+When the change is documentation-only and touches no source the test suite imports (e.g. benchmark-script docstrings), say so plainly — "the test suite is unaffected; N pass" — rather than implying the edit was exercised.
+
+**Lint, types, and tests have blind spots; some refactors need a targeted runtime check.** They miss: forward-reference evaluation in `get_type_hints()`; import-time side effects and circular-import *order*; entry-point / plugin registration; `__all__` / re-export drift after a move; pickling of relocated classes. After a rename, an encapsulation change, or a type-alias move (Categories 5–7), add a check the gates don't give you — import the public surface and call `get_type_hints()` on the touched signatures, exercise the entry points, or run an independent review. And verify claims about *current* behavior against the code or the built artifact, not against config or naming: "this path emits no footer" / "the license file isn't in the package" are confirmed by reading the function or unpacking the artifact, never inferred from a settings list.
 
 ## Detection patterns
 
@@ -123,10 +125,12 @@ The hardest category to detect with grep. Sub-patterns:
 Detection is mostly manual reading. Some grep-level hints:
 ```bash
 # Find docstrings that mention method names that no longer exist
-rg -n "to_array|to_dict|to_record" src/  # if those were renamed
+rg -n "old_name_a|old_name_b" src/  # the pre-rename names
 # Find sections of README that talk about removed features
 git diff <merge-base> -- README.md  # see what was/wasn't updated
 ```
+
+**Structural reorganization (distinct from stale-content fixing).** A document can be accurate yet disorganized — a flat run of sections, no navigation, usage interleaved with internals. Reorganizing is reorder + group + add a table of contents, and it must be **content-preserving**: diff each section body against the original to prove no silent loss. Two hazards: (a) renaming or re-leveling a heading changes its anchor — compute the new anchor (for a GitHub-rendered doc: lowercase, drop characters outside `[\w\s-]`, spaces→hyphens, `&`→`--`) and grep the repo for inbound `#anchor` links before renaming; (b) for a long document, a grouped table of contents is navigation, not decoration.
 
 ### Category 4: Dead code
 
@@ -189,6 +193,8 @@ A committed file — source, **test**, config, docstring, comment, or doc — sh
 
 Replace with neutral placeholders (`/path/to/project`, `$HOME`, `example.com`, a generic `user`). Maintainer-approved attribution (a `LICENSE` holder, a chosen `pyproject` author field) is exempt; when unsure whether a value is approved, ask before shipping.
 
+**Hardware *identity* vs measurement *parameter*.** Scrub what identifies the machine or author — CPU model/brand, hostname, username, home-directory paths. Do **not** scrub a quantity a stated claim depends on — a thread/core count, row count, byte size, or iteration count that makes a number or ratio interpretable. A comment like "8 vs 64 threads ≈ 6× slower" becomes meaningless if the counts are replaced with "the full thread count". Test: would deleting the value make a quantitative claim unverifiable? Then it is a parameter — keep it. The hardware that *produced* a number is identity; the number's *parameters* are not.
+
 This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, and prose for anything that identifies the author or their machine, rather than relying on a brittle keyword list (and never hard-code the developer's identifiers into the scan or this skill). It is removal-only and behavior-neutral, so it rides in the same first commit as the other artifact removals (Category 1/2).
 
 ## Commit message style for polishing
@@ -202,21 +208,21 @@ Body must say one of:
 Example (from a real polishing pass):
 
 ````markdown
-[polish] Drop module-private access from writer to format
+[polish] Drop module-private access from exporter to store
 
-`writer.py` reached into `format._COUNTERS_OFFSET` to compute the
-counters block position. That coupling broke encapsulation: a
-format-internal constant became part of the writer's contract.
+`exporter.py` reached into `store._HEADER_OFFSET` to compute the
+header position. That coupling broke encapsulation: a store-internal
+constant became part of the exporter's contract.
 
-Replaced with `format.read_counters(fp)` / `format.write_counters(fp, ...)`
-helpers that own the offset arithmetic inside the format module.
-The writer now never sees the on-disk layout.
+Replaced with `store.read_header(fp)` / `store.write_header(fp, ...)`
+helpers that own the offset arithmetic inside the store module.
+The exporter now never sees the on-disk layout.
 
-No behavioral change. 254 tests pass; ruff/black/mypy clean.
+No behavioral change. The suite passes; lint/format/type-check clean.
 
 Files:
-  * src/colstore/format.py    (+ read_counters, write_counters)
-  * src/colstore/writer.py    (use the new helpers)
+  * src/<pkg>/store.py       (+ read_header, write_header)
+  * src/<pkg>/exporter.py    (use the new helpers)
 ````
 
 The phrase "no behavioral change" is the reviewer's permission to skim. Earn it: don't sneak a behavior fix into a `[polish]` commit. If you spot a bug while polishing, note it separately.
@@ -245,10 +251,10 @@ A 6-commit polishing PR on a Python+C++ package:
 | 2 | `drop_pr_refs` | PR refs | Replaced `# see PR #142` comments with in-code explanations |
 | 3 | `fix_stale_docs` | Stale docs | Updated docstrings that described old return types after a prior refactor |
 | 4 | `dead_code_fstrings` | Dead code | Removed unused branches, f-strings with no interpolation, one orphan helper |
-| 5 | `drop_private_access` | Encapsulation | Writer no longer accessed `format._COUNTERS_OFFSET`; added `format.read_counters` |
-| 6 | `rename_materialize` | Renames | `to_array` → `array`, `to_dict` → `dict`, `to_record` → `recarray`, `to_dataframe` → `frame` |
+| 5 | `drop_private_access` | Encapsulation | Caller no longer reached into `store._HEADER_OFFSET`; added `store.read_header` |
+| 6 | `rename_materialize` | Renames | `to_array` → `array`, `to_dict` → `dict`, `to_records` → `records`, `to_frame` → `frame` |
 
-254 tests passed after each commit. Per-commit zips delivered with the PR (see `code-delivery` skill). Each commit body said "no behavioral change" — the reviewer could skim 1-4 in minutes and focus attention on 5-6 where the structure genuinely changed.
+The suite passed after each commit. Per-commit zips delivered with the PR (see `code-delivery` skill). Each commit body said "no behavioral change" — the reviewer could skim 1-4 in minutes and focus attention on 5-6 where the structure genuinely changed.
 
 ## Quick checklist before sending a polishing PR
 
