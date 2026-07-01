@@ -1,6 +1,6 @@
 ---
 name: cpp-code-review
-description: The coding standard for C++ — clang-format style, modern C++ and type safety, RAII and resource management, const-correctness, naming, and error handling — to follow while writing C++ and to apply when reviewing it. Use when writing, implementing, or refactoring C++, or when asked to review, lint, improve, or critique it ("add const", "fix memory management", "modernize this", "make this more readable"; clang-format, clang-tidy, smart pointers), or for any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs work, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
+description: The coding standard for C++ — clang-format style, modern C++ and type safety, RAII and resource management, const-correctness, naming, and error handling — to follow while writing C++ and to apply when reviewing it. Use when writing, implementing, or refactoring C++, or when asked to review, lint, improve, or critique it ("add const", "fix memory management", "modernize this", "make this more readable"; clang-format, clang-tidy, smart pointers), or for any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
 ---
 
 # C++ Code Review & Improvement
@@ -219,15 +219,12 @@ Write comments only when the code can't speak for itself. Every comment is a mai
 
 ### 10. Modularity & Reusability
 
-Structure code so each piece is independently understandable, testable, and compilable.
+Structural design — Single Responsibility, minimizing coupling, narrow and stable interfaces, and DRY (the same *fact* in two places, not lookalikes) — is owned by the `software-design` skill; apply it for those. What stays here is the C++-specific mechanics for the same goals:
 
-- **Single Responsibility**: Each function does one thing. Each class represents one concept. Each file covers one cohesive area.
-- **Minimize coupling**: Pass dependencies through constructor parameters or function arguments, not through globals or singletons. Use dependency injection for testability.
 - **Header/source separation**: Declarations in `.h` / `.hpp`, definitions in `.cpp`. Inline templates and constexpr in headers. Keep headers minimal — include only what is necessary for the declarations.
 - **Use namespaces**: Organize code into namespaces that reflect the project structure. Avoid dumping everything into a single namespace or the global namespace.
-- **Design stable interfaces**: Prefer narrow interfaces. Use `explicit` on single-argument constructors. Use `[[nodiscard]]` on functions where ignoring the result is a mistake. Consider making classes non-copyable when copying doesn't make semantic sense (`= delete` the copy operations).
+- **Enforce interfaces with the type system**: Use `explicit` on single-argument constructors, `[[nodiscard]]` where ignoring the result is a mistake, and `= delete` on copy operations when copying makes no semantic sense.
 - **Templates for compile-time polymorphism**: When the set of types is open-ended, prefer templates over inheritance. Use concepts (C++20) to constrain templates and produce clear error messages.
-- **DRY, but not at all costs**: Extract shared logic when the duplication is exact and meaningful. Don't force unrelated code into the same template specialization or base class just because it looks similar — that creates fragile coupling.
 
 ### 11. Concurrency Safety
 

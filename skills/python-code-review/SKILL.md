@@ -1,6 +1,6 @@
 ---
 name: python-code-review
-description: The coding standard for Python — style, naming, type hints, NumPy docstrings, design principles (SRP/DRY/KISS/YAGNI), performance, and safety — to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
+description: The coding standard for Python — style, naming, type hints, NumPy docstrings, performance, and safety — to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
 ---
 
 # Python Code Review & Improvement
@@ -93,16 +93,9 @@ def calculate_metrics(
 
 ## 5. Design Principles
 
-Each guideline below is well-known on its own, but they reinforce each other.
+Structural design — Single Responsibility, DRY (the same *fact* in two places, not lookalikes), the Rule of Three, YAGNI, KISS, composition over inheritance, and minimizing coupling — is owned by the `software-design` skill; apply it for those. What stays here is the Python-specific way to make an interface hard to misuse:
 
-- **Single Responsibility Principle (SRP)**: Each function does one thing; each class represents one concept. Exception: pipeline / orchestration functions are intentionally a sequence of steps — those should still read top-to-bottom and delegate the actual work to helpers.
-- **Don't Repeat Yourself (DRY)**: Extract shared logic when duplication is exact and meaningful. Do not force unrelated code into the same abstraction just because the surface looks similar — that creates fragile coupling worse than the duplication.
-- **Rule of Three**: Two similar pieces of code do not require refactoring. The third occurrence is the signal to extract a function.
-- **You Aren't Gonna Need It (YAGNI)**: Do not add parameters, options, or abstraction layers for hypothetical future needs. Build for the case in front of you; refactor when the second case arrives.
-- **Keep It Simple, Stupid (KISS)**: Prefer the simpler implementation. A clear loop beats a clever one-liner. Reach for metaprogramming, decorators, and inheritance only when they earn their complexity.
-- **Composition over inheritance**: Reuse via small composed pieces rather than deep class hierarchies, unless an inheritance relationship genuinely models an "is-a".
-- **Stable, hard-to-misuse interfaces**: Use keyword-only arguments (`*,`) when a function takes multiple parameters of the same type, so callers cannot swap them by accident. Provide sensible defaults.
-- **Minimize coupling**: Functions should depend on their parameters, not on global state. Pass dependencies in.
+- **Keyword-only arguments (`*,`)**: When a function takes several parameters of the same type, make them keyword-only so callers cannot swap them by accident. Provide sensible defaults.
 
 ## 6. Performance & Efficiency
 
