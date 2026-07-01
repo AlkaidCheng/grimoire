@@ -16,6 +16,8 @@ This skill covers two delivery surfaces:
 
 This file covers the **Claude Code** surface and everything universal — pre-delivery checks, the PR-draft text artifacts (Mode 3), the human-facing-artifact rules, PR title / commit / description style. Sections marked **(Claude Code only)** describe direct edits and git invocation; everything unmarked applies to both surfaces. The **(Claude.ai only)** packaging mechanics — inline/zip modes, per-commit zips, cleanup — are in [`claude-ai-packaging.md`](claude-ai-packaging.md).
 
+**Relationship to `code-polishing`.** Delivery and polishing are stages of one pipeline, not competitors. `code-polishing` transforms the *content* of a change — stripping iteration artifacts, dead code, stale docs, encapsulation and naming drift; this skill packages and ships whatever change exists, running the gates and authoring the branch, commit, and PR text. A bare "fix this" or "draft a PR" is delivery; "clean this up" is polishing. Delivery runs **last** in the pipeline — it packages whatever the upstream passes produced: content cleanup (`code-polishing`), then any language-style pass (`python-code-review` / `cpp-code-review`). This skill owns the commit-message and PR-text conventions; `code-polishing` follows them, adding only its `[polish]`-specific note.
+
 ## Surface: Claude Code — direct edits and git operations
 
 **(Claude Code only.)** The deliverable is the edited working tree itself, not a code block or a zip. Apply the change with the editing tools, then write the PR draft text artifacts in chat.

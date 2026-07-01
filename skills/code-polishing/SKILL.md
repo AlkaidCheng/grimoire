@@ -1,6 +1,6 @@
 ---
 name: code-polishing
-description: Use whenever the user asks to review, polish, clean up, or make code PR-ready ("remove cruft", "make this PR-ready", "review pass", "clean up this mess", any pre-merge cleanup), or when a finished change has accumulated iteration artifacts to strip — LLM/conversation comments, past-PR references, dead code, stale docstrings, encapsulation violations, naming drift. Owns language-agnostic structural cleanup; for style defer to python-code-review (PEP 8, typing, idioms) and cpp-code-review (clang-format, modern C++). When unsure between polishing and style, pick polishing if the ask names cleanup, artifacts, dead code, stale docs, or PR-readiness.
+description: Use whenever the user asks to review, polish, clean up, or make code PR-ready ("remove cruft", "make this PR-ready", "review pass", "clean up this mess", any pre-merge cleanup), or when a finished change has accumulated iteration artifacts to strip — LLM/conversation comments, past-PR references, dead code, stale docstrings, encapsulation violations, naming drift. Upstream of code-delivery, which packages a change and writes its commit and PR text. Owns language-agnostic structural cleanup; for style defer to python-code-review (PEP 8, typing, idioms) and cpp-code-review (clang-format, modern C++). When unsure between polishing and style, pick polishing if the ask names cleanup, artifacts, dead code, stale docs, or PR-readiness.
 ---
 
 # Code Polishing
@@ -26,6 +26,8 @@ The "make it look like a human wrote it on the first try" pass. Iteration leaves
 - Algorithmic improvements or API redesign
 
 If the request blends both layers ("polish and modernize"), run polishing first (this skill), then the language-specific review. Polishing reduces noise; style review on a noisy codebase wastes both passes.
+
+**Relationship to `code-delivery`.** Polishing and delivery are stages of one pipeline, not competitors. This skill changes the *content* of the code — removing artifacts, dead code, stale docs, encapsulation and naming drift; `code-delivery` packages and ships whatever change exists, running the gates, authoring the branch, commit, and PR text, and invoking git. Trigger cue: "clean this up" is polishing; "fix this" or "open a PR" is delivery. When a request spans the whole arc ("clean it up **and** ship it"), run the stages in order — **polish** (this skill, content cleanup) → **language-style pass** (`python-code-review` / `cpp-code-review`, only when style work is wanted) → **deliver** (`code-delivery`, last, since it packages the finished result). Follow `code-delivery` for the commit-message and PR-text conventions; polishing adds only the `[polish]` prefix and the "no behavioral change" line.
 
 ## Process
 
@@ -199,11 +201,12 @@ This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, an
 
 ## Commit message style for polishing
 
-Subject prefix: `[polish]` (or `chore:` if the project uses Conventional Commits). The prefix is the signal to reviewers: "no behavior change, light review".
+Follow `code-delivery`'s commit-message conventions — imperative `[scope]` subject, short-or-absent body, a file list when more than two files change. Polishing adds only two things on top:
 
-Body must say one of:
-- "No behavioral change. <N> tests pass."
-- "Behavior unchanged; <briefly describe the structural change and why>."
+- **Subject prefix `[polish]`** (or `chore:` under Conventional Commits) — the signal to reviewers: "no behavior change, light review".
+- **A body line stating the no-change contract**, one of:
+  - "No behavioral change. <N> tests pass."
+  - "Behavior unchanged; <briefly describe the structural change and why>."
 
 Example (from a real polishing pass):
 
