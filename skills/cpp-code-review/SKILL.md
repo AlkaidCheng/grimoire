@@ -1,6 +1,6 @@
 ---
 name: cpp-code-review
-description: Review and improve C++ code for quality, style, and correctness. Use this skill whenever the user asks to review, refactor, clean up, lint, improve, or critique C++ code. Also trigger when the user shares C++ code and asks to "make it better", "fix this", "check my code", "follow best practices", or mentions clang-format, clang-tidy, modern C++, RAII, smart pointers, const correctness, or code quality. Trigger for any request involving C++ code improvement, even partial — such as "add const", "fix memory management", "modernize this code", or "make this more readable". If the user pastes C++ code without explicit instructions but it clearly needs cleanup, offer to review it using this skill. Also trigger for .cpp, .h, .hpp, .cc, or .cxx files.
+description: Review and improve C++ code for quality, style, and correctness. Use whenever the user asks to review, refactor, lint, improve, or critique C++ — including partial asks ("add const", "fix memory management", "modernize this", "make this more readable"), "make it better"/"check my code" on shared C++, mentions of clang-format, clang-tidy, modern C++, RAII, smart pointers, const-correctness, or any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs cleanup, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
 ---
 
 # C++ Code Review & Improvement

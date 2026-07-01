@@ -1,6 +1,6 @@
 ---
 name: code-polishing
-description: Use this skill whenever the user asks to review, polish, clean up, or get code ready for PR — phrases like "polish before review", "remove cruft", "make this PR-ready", "review pass", "code is messy, clean it up", or any pre-merge cleanup pass. Also use when a finished feature/fix has accumulated iteration artifacts that need stripping (LLM conversation comments, references to past PRs, dead code, stale docstrings, encapsulation violations, naming drift). This skill owns the language-agnostic structural cleanup; defer to `python-code-review` for PEP-8/typing/pythonic-idiom work and to `cpp-code-review` for clang-format/modern-C++ work. If unsure whether a request is "polishing" or "style", lean toward polishing if the request mentions cleanup, artifacts, dead code, stale docs, or PR-readiness.
+description: Use whenever the user asks to review, polish, clean up, or make code PR-ready ("remove cruft", "make this PR-ready", "review pass", "clean up this mess", any pre-merge cleanup), or when a finished change has accumulated iteration artifacts to strip — LLM/conversation comments, past-PR references, dead code, stale docstrings, encapsulation violations, naming drift. Owns language-agnostic structural cleanup; for style defer to python-code-review (PEP 8, typing, idioms) and cpp-code-review (clang-format, modern C++). When unsure between polishing and style, pick polishing if the ask names cleanup, artifacts, dead code, stale docs, or PR-readiness.
 ---
 
 # Code Polishing
