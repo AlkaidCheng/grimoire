@@ -62,12 +62,12 @@ Don't preface with "Here is the code:" or close with "Hope this helps." The bloc
 
 ## Mode 2: Zipped package
 
-Two zips by default — and present them in this order so the focused one is the first thing the user sees:
+**Deliver the focused fix zip only. Add a refreshed cumulative zip solely when the user asks for one** — shipping it unprompted just adds a second, larger archive the user has to tell apart from the one that matters, which is noise rather than help.
 
-1. **Focused fix zip** — only the files that changed, at paths relative to the repository root (no wrapping repo-name directory), so it drops in with `unzip -o <focused-fix>.zip -d .` run from the repo root, followed by `git add .` (see "Per-commit zips" for the exact layout and why the wrapping directory is wrong).
-2. **Refreshed cumulative zip** — the whole package with the fix applied, for users who'd rather diff against their last full snapshot than apply the focused fix on top
+- **Focused fix zip** *(the default deliverable)* — only the files that changed, at paths relative to the repository root (no wrapping repo-name directory), so it drops in with `unzip -o <focused-fix>.zip -d .` run from the repo root, followed by `git add .` (see "Per-commit zips" for the exact layout and why the wrapping directory is wrong).
+- **Refreshed cumulative zip** *(only on request)* — the whole package with the fix applied, for someone who'd rather diff against their last full snapshot than apply the focused fix on top.
 
-After packaging, call `present_files` with both. The focused zip goes first in the list.
+Call `present_files` with the focused zip. If a cumulative zip was requested, present the focused zip first so it stays the first thing the user sees.
 
 Follow up with a short body that explains:
 - What was wrong (one paragraph, concrete — quote the error or symptom)
@@ -128,19 +128,19 @@ The Windows lock-offset fix touched four files (`locking.py`, `writer.py`, `comp
 1. Made the change
 2. Ran Linux build + tests + ruff + black + mypy (one combined `bash_tool` call)
 3. Cleaned artifacts
-4. Built two zips: `win_lock_fix.zip` (just the four files) and `<pkg>_windows.zip` (whole package refreshed)
-5. Called `present_files` with the focused zip first
+4. Built the focused fix zip `win_lock_fix.zip` (just the four files) — no cumulative zip, since none was requested
+5. Called `present_files` with it
 6. Wrote a body with: diagnosis table, root cause with doc citation, the two independent fixes, verification numbers, expected-after-merge table, and a quad-backtick commit message at the end
 
 ### What NOT to do
 - Don't dump a 200-line file inline when a focused zip would do it.
-- Don't ship the cumulative zip without the focused zip — the user has to diff manually to find what changed.
+- Don't ship the refreshed cumulative zip unprompted — the focused fix zip is the whole deliverable unless the user asked for the cumulative one.
 
 ## Checklist — zip mechanics
 
 - [ ] Build artifacts cleaned out of the zip
-- [ ] Focused fix zip present and listed first
-- [ ] Cumulative zip refreshed (if applicable)
+- [ ] Focused fix zip present (and listed first if a cumulative zip was also requested)
+- [ ] Refreshed cumulative zip included only if the user asked for one
 - [ ] Per-commit zips alongside each commit message
 - [ ] **Every zip's internal paths are repo-root-relative** (top-level entries are `src/…`, `tests/…`, not `<repo-name>/…`); verified with `unzip -l`, and unpacks via `unzip -o <file> -d .` from the repo root then `git add .`
 - [ ] **Deletions are spelled out in the chat with explicit `git rm <paths>` commands** from the repo root (zips can't carry deletions)
