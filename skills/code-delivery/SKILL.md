@@ -9,24 +9,12 @@ How to package and present code changes so the user can apply them quickly.
 
 This skill covers two delivery surfaces:
 
-- **Claude.ai** — no direct repository access. Code is delivered as inline fenced blocks or as zipped packages surfaced through `present_files`. Three modes: inline, zipped package, PR draft.
+- **Claude.ai** — no direct repository access. Code is delivered as inline fenced blocks or as zipped packages surfaced through `present_files`. Three modes: inline, zipped package, PR draft. The packaging mechanics for this surface live in [`claude-ai-packaging.md`](claude-ai-packaging.md); read that file when the deliverable is being packaged for Claude.ai.
 - **Claude Code** — direct repository access. Code is delivered by editing files in the repo. Git operations (creating a branch, committing, pushing) are not run unprompted; offer them and wait for the user's go-ahead.
 
 **What is universal across both surfaces:** the *text artifacts* of a PR draft — branch name, commit messages, PR title, PR description — and the writing style for each. These are read by human reviewers regardless of how the change was produced; the conventions below apply identically.
 
-Sections marked **(Claude.ai only)** describe zip/inline packaging; sections marked **(Claude Code only)** describe direct edits and git invocation; everything else applies to both.
-
-## Surface: Claude.ai — inline vs. zip vs. PR draft
-
-**(Claude.ai only.)** Choose how to package the deliverable:
-
-| Situation | Format |
-|---|---|
-| Single change ≤ ~40 lines, one file, or a copy-paste helper | **Inline** — fenced code block tagged with the file's language (`python`, `cpp`, `bash`, …) |
-| Change spans multiple files, includes binaries, needs a build, or the user said "package this up" | **Zip** — drop into the output directory and surface with `present_files` |
-| User said "draft a PR", "open a PR", "prepare commits", or anything that names commits/branches/PRs | **PR draft** — multi-block format described below |
-
-When in doubt between inline and zip: if you'd otherwise be pasting more than two code blocks for a single change, zip it. Long inline diffs are hard to apply by hand.
+This file covers the **Claude Code** surface and everything universal — pre-delivery checks, the PR-draft text artifacts (Mode 3), the human-facing-artifact rules, PR title / commit / description style. Sections marked **(Claude Code only)** describe direct edits and git invocation; everything unmarked applies to both surfaces. The **(Claude.ai only)** packaging mechanics — inline/zip modes, per-commit zips, cleanup — are in [`claude-ai-packaging.md`](claude-ai-packaging.md).
 
 ## Surface: Claude Code — direct edits and git operations
 
@@ -58,72 +46,13 @@ Mention the results in one or two lines after the deliverable. Don't pad the res
 
 When a change *provably cannot* affect a gate — a docs-only edit, or a new script/benchmark file the test suite never imports — say so with the reason ("docs-only; the suite doesn't import this — unaffected") instead of running the full suite for show. Only claim "unaffected" when you can point at *why* (no imported source changed); otherwise run it.
 
-## Cleaning up before zipping
-
-**(Claude.ai only.)** Strip build artifacts that shouldn't ship:
-
-```bash
-rm -f src/<pkg>/*.so          # built extensions
-rm -rf bld build dist *.egg-info
-rm -rf .pytest_cache .mypy_cache .ruff_cache
-rm -f src/cython/*.cpp        # generated, never check in
-find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null
-```
-
-Then `zip -r <name>.zip <folder> -x '*.pyc' -x '*/__pycache__/*'` and confirm with `unzip -l` or `du -h` that the size looks reasonable (a clean Python package should be tens-to-low-hundreds of KB, not MB).
-
-## Mode 1: Inline
-
-**(Claude.ai only.)** A fenced code block, tagged with the file's actual language so it renders with syntax highlighting and the user knows what they're looking at:
-
-````
-```python
-def normalize_records(...):
-    ...
-```
-````
-
-````
-```cpp
-template <typename T>
-void merge_sorted(...) { ... }
-```
-````
-
-````
-```bash
-PYTHONPATH=src python3 -m pytest tests/ -q
-```
-````
-
-Don't use `markdown` as the tag for actual source code — that's reserved for things like commit messages and PR descriptions (Mode 3). Show the change in context if the file is large enough that the user might lose their place. Below the block, one line of verification: "Builds clean on Linux, the tests pass."
-
-Don't preface with "Here is the code:" or close with "Hope this helps." The block speaks for itself.
-
-## Mode 2: Zipped package
-
-**(Claude.ai only.)** Two zips by default — and present them in this order so the focused one is the first thing the user sees:
-
-1. **Focused fix zip** — only the files that changed, at paths relative to the repository root (no wrapping repo-name directory), so it drops in with `unzip -o <focused-fix>.zip -d .` run from the repo root, followed by `git add .` (see "Per-commit zips" for the exact layout and why the wrapping directory is wrong).
-2. **Refreshed cumulative zip** — the whole package with the fix applied, for users who'd rather diff against their last full snapshot than apply the focused fix on top
-
-After packaging, call `present_files` with both. The focused zip goes first in the list.
-
-Follow up with a short body that explains:
-- What was wrong (one paragraph, concrete — quote the error or symptom)
-- What changed (one paragraph, with the key code excerpt if it's small)
-- Verification (one line)
-- A suggested commit message in a ```` ```markdown ```` block, wrapped in outer quad backticks so the commit body's own triple-backticks (if any) render correctly
-
-Don't restate file paths the user can see in the zip listing. Don't apologize for the bug.
-
 ## Mode 3: PR draft (text artifacts)
 
 The user wants something they can paste into git and a PR template. Produce **each text artifact in its own fenced code block** so the user can copy each one independently. Order matters — give them the pieces in the order they'd use them.
 
 **This section applies to both surfaces.** The branch name, commit message(s), PR title, and PR description are authored identically on Claude.ai and in Claude Code — they are read by a human reviewer who doesn't know how the change was produced. What *differs* by surface is only how the code itself is delivered alongside the text:
 
-- **Claude.ai:** per-commit zips delivered via `present_files`, ordered next to each commit message. See "Per-commit zips" below.
+- **Claude.ai:** per-commit zips delivered via `present_files`, ordered next to each commit message. See [`claude-ai-packaging.md`](claude-ai-packaging.md) ("Per-commit zips").
 - **Claude Code:** the edits are already in the working tree; offer to run the matching git operations (`git checkout -b`, `git add`, `git commit -F`, `git rm`, `git push`) and wait for authorization, as covered in "Surface: Claude Code — direct edits and git operations". The PR title and description are still authored in chat as `markdown`-tagged blocks so the user can paste them into the PR template.
 
 ### One PR at a time
@@ -172,7 +101,7 @@ The structure of a PR draft response is:
        * path/to/other.cpp  (one-line note)
      ````
      `````
-   - **(Claude.ai only.)** The corresponding **per-commit zip** delivered via `present_files`, named `commit_<N>_<slug>.zip`, containing only the files touched by that commit
+   - **(Claude.ai only.)** The corresponding **per-commit zip** delivered via `present_files`, named `commit_<N>_<slug>.zip`, containing only the files touched by that commit (zip mechanics in [`claude-ai-packaging.md`](claude-ai-packaging.md))
    - **(Claude Code only.)** The edits for this commit are already in the working tree from the earlier editing step. After all commit messages, PR title, and PR description are written in chat, offer to run `git checkout -b <branch>` followed by per-commit `git add <paths> && git commit -F -` (and `git rm` for any deletions, see "Deletions"), and wait for authorization before running.
 4. **PR title** — single-line, untagged fence. The title text **must** start with a type tag (see "PR title style" below):
    ````
@@ -183,50 +112,13 @@ The structure of a PR draft response is:
 5. **PR description** — `markdown`-tagged block containing the description (which itself may contain inner code excerpts tagged with their real languages — `python`, `cpp`, etc.)
 6. Final summary table (outside the code blocks) listing the deliverables. On Claude.ai: branch, each commit zip, and anything else. In Claude Code: the branch name, the changed-file list per commit, and any deletions — pointing the reader at the working tree rather than at attached files.
 
-### Per-commit zips
-
-**(Claude.ai only.)** Each commit gets its own zip. **The zip's internal paths must be relative to the repository root — no leading repo-name directory.** The files sit at the exact paths they occupy in the repo (`src/<pkg>/reader.py`, `tests/test_foo.py`), so the user can unpack them from the repo root and have them land in place:
-
-```bash
-cd <repo>                       # repository root
-git checkout -b <branch-name>
-unzip -o commit_1_<slug>.zip -d .   # -o overwrites without prompting; -d . = repo root
-git add .                           # *.zip is gitignored, so the archive itself is never staged
-git commit -F <commit-1-message-saved-to-file>
-unzip -o commit_2_<slug>.zip -d .
-git add .
-git commit -F <commit-2-message-saved-to-file>
-# ...
-```
-
-This is why each commit's files must be self-contained and repo-root-relative: the user extracts them in sequence onto a clean tree with `unzip -o ... -d .` and stages with `git add .`. **Do not** wrap the files in a top-level package/repo directory inside the zip — a zip containing `<repo-name>/src/<pkg>/reader.py` would extract to `<repo>/<repo-name>/src/...`, the wrong place. Build the zip from a staging dir whose top level *is* the repo root:
-
-```bash
-mkdir -p stage/src/<pkg> stage/tests
-cp <working>/src/<pkg>/reader.py stage/src/<pkg>/reader.py
-cp <working>/tests/test_foo.py       stage/tests/test_foo.py
-( cd stage && zip -r /mnt/user-data/outputs/pr_<branch>/commit_1_<slug>.zip src tests )
-```
-
-Verify with `unzip -l` that the first entries are `src/...` / `tests/...`, never `<repo-name>/...`.
-
 ### Deletions
 
 **Universal principle.** List every removed path. Never leave a deletion implicit — the commit must actually drop the file. The commit message's file list should mark them too (e.g. `* src/<pkg>/old_module.py   (removed)`).
 
-**(Claude.ai only.)** A zip cannot express a deletion — extracting it only adds or overwrites files. If a commit removes files, you must call them out explicitly in the chat with the exact removal commands, run from the repo root, alongside the unzip step for that commit:
-
-```bash
-cd <repo>
-unzip -o commit_3_<slug>.zip -d .          # adds/updates files
-git rm src/<pkg>/old_module.py src/cpp/dead_kernel.cpp   # removals the zip can't carry
-git add .
-git commit -F <commit-3-message-saved-to-file>
-```
-
 **(Claude Code only.)** Remove the files with `git rm <path>` as part of the authorized git run for the commit that drops them. Don't leave an instruction for the user to run later — the surface supports the real operation, so do it (after authorization).
 
-**(Claude.ai only.)** Stage the per-commit zips somewhere predictable, e.g. `/mnt/user-data/outputs/pr_<branch>/commit_<N>_<slug>.zip`, and pass all of them to `present_files` in one call after all the code blocks.
+**(Claude.ai only.)** A zip cannot carry a deletion; it must be spelled out in the chat with explicit `git rm` commands — see [`claude-ai-packaging.md`](claude-ai-packaging.md) ("Deletions in zips").
 
 ## Audience: write every artifact for a human reviewer
 
@@ -339,17 +231,7 @@ Add or rename sections to match the project's own template if one exists in `.gi
 
 ## Worked examples
 
-### Inline fix example (Claude.ai)
-**(Claude.ai only.)** The MSVC `__restrict__` → `__restrict` swap was small (one header + six call sites in one .cpp), but it spanned a header + source file. We zipped it (focused fix zip) rather than inlining because the user was going to apply it across a build boundary and a focused zip is more reliable than copying two code blocks into the right files. Rule of thumb: **if applying the change touches more than one file, zip it.**
-
-### Iterative fix example (Claude.ai, Mode 2)
-**(Claude.ai only.)** The Windows lock-offset fix touched four files (`locking.py`, `writer.py`, `compactor.py`, `store.py`). Pattern:
-1. Made the change
-2. Ran Linux build + tests + ruff + black + mypy (one combined `bash_tool` call)
-3. Cleaned artifacts
-4. Built two zips: `win_lock_fix.zip` (just the four files) and `<pkg>_windows.zip` (whole package refreshed)
-5. Called `present_files` with the focused zip first
-6. Wrote a body with: diagnosis table, root cause with doc citation, the two independent fixes, verification numbers, expected-after-merge table, and a quad-backtick commit message at the end
+Claude.ai worked examples (an inline fix and an iterative zipped fix) are in [`claude-ai-packaging.md`](claude-ai-packaging.md).
 
 ### Equivalent fix in Claude Code
 Same four-file Windows lock-offset fix, on the Claude Code surface:
@@ -362,8 +244,6 @@ Same four-file Windows lock-offset fix, on the Claude Code surface:
 The chat output is mostly the *text artifacts* — no large code blocks, since the edits live in the working tree.
 
 ### What NOT to do
-- **(Claude.ai)** Don't dump a 200-line file inline when a focused zip would do it.
-- **(Claude.ai)** Don't ship the cumulative zip without the focused zip — the user has to diff manually to find what changed.
 - **(Claude Code)** Don't paste the full edited file back into chat as a code block — the edits are already in the working tree; the user doesn't need a copy.
 - **(Claude Code)** Don't run `git checkout -b`, `git add`, `git commit`, or `git push` before the user has authorized it.
 - Don't put a commit message or PR description in a regular triple-backtick block without a language tag — use ```` ```markdown ```` so it renders as formatted text, and wrap the outer fence in quad backticks if the body contains its own triple-backtick code excerpts.
@@ -387,14 +267,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] **Any deletions are spelled out** and marked `(removed)` in the commit's file list
 - [ ] Only ONE PR delivered this turn; planned follow-up PRs are named, not produced
 
-**Claude.ai only — zip mechanics:**
-
-- [ ] Build artifacts cleaned out of the zip
-- [ ] Focused fix zip present and listed first
-- [ ] Cumulative zip refreshed (if applicable)
-- [ ] Per-commit zips alongside each commit message
-- [ ] **Every zip's internal paths are repo-root-relative** (top-level entries are `src/…`, `tests/…`, not `<repo-name>/…`); verified with `unzip -l`, and unpacks via `unzip -o <file> -d .` from the repo root then `git add .`
-- [ ] **Deletions are spelled out in the chat with explicit `git rm <paths>` commands** from the repo root (zips can't carry deletions)
+**Claude.ai only — zip mechanics:** see the zip-mechanics checklist in [`claude-ai-packaging.md`](claude-ai-packaging.md).
 
 **Claude Code only — direct edits and git operations:**
 
