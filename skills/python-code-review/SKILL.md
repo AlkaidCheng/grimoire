@@ -1,13 +1,18 @@
 ---
 name: python-code-review
-description: Review and improve Python code for robustness, modularity, performance, and clarity. Use whenever the user asks to review, refactor, lint, audit, improve, or critique Python — including partial asks ("add type hints", "add docstrings", "make this more performant/Pythonic", "remove redundancy"), "make it better"/"check my code" on shared Python, or mentions of PEP 8, Black, type hints, NumPy docstrings, DRY/KISS/YAGNI. If Python is pasted without instructions but clearly needs cleanup, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
+description: The coding standard for Python — style, naming, type hints, NumPy docstrings, design principles (SRP/DRY/KISS/YAGNI), performance, and safety — to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
 ---
 
 # Python Code Review & Improvement
 
-Review and improve Python code so it is robust, flexible, modular, clean, performant where it matters, and easy to read. Every change must have a clear justification — improve correctness, clarity, performance, or reduce complexity. Never change code just to change it.
+This skill is the coding standard for Python: the conventions below define how Python should be written, and how it should be reviewed. Every change must have a clear justification — improve correctness, clarity, performance, or reduce complexity. Never change code just to change it.
 
-When reviewing, work through the checklist below in order. Style and naming come first so the rest of the code is readable; types and docstrings make intent explicit; structure, performance, and safety come last because they build on the foundation.
+It applies in **two modes**:
+
+- **Authoring** (writing or changing Python) — apply the standards below *as you write*, so the code already meets them. This is the default when the task is to implement or modify Python; there is no separate review write-up.
+- **Reviewing** (auditing existing code) — check code against the standards and return an improved version with a summary, following the format in "Delivering the Review" at the end.
+
+Work through the criteria in order: style and naming first so the rest of the code is readable; types and docstrings make intent explicit; structure, performance, and safety last, because they build on the foundation.
 
 ## 1. Formatting & Style
 
@@ -221,7 +226,7 @@ Changes: split imports and dropped unused ones; gave names that say what the val
 
 ## Delivering the Review
 
-Structure responses in this order:
+**This applies in review mode** — when the task is to audit existing code, not when you are authoring new code (there, just write code that already meets the standard, with no separate review write-up). Structure the review response in this order:
 
 1. **One-line overall assessment** — quality and the single most important issue.
 2. **The improved code as a complete, runnable replacement** — never make the user stitch fragments together.

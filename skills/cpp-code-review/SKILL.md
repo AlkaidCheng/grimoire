@@ -1,13 +1,18 @@
 ---
 name: cpp-code-review
-description: Review and improve C++ code for quality, style, and correctness. Use whenever the user asks to review, refactor, lint, improve, or critique C++ — including partial asks ("add const", "fix memory management", "modernize this", "make this more readable"), "make it better"/"check my code" on shared C++, mentions of clang-format, clang-tidy, modern C++, RAII, smart pointers, const-correctness, or any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs cleanup, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
+description: The coding standard for C++ — clang-format style, modern C++ and type safety, RAII and resource management, const-correctness, naming, and error handling — to follow while writing C++ and to apply when reviewing it. Use when writing, implementing, or refactoring C++, or when asked to review, lint, improve, or critique it ("add const", "fix memory management", "modernize this", "make this more readable"; clang-format, clang-tidy, smart pointers), or for any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs work, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
 ---
 
 # C++ Code Review & Improvement
 
-Review and improve C++ code to be clean, correct, well-structured, and production-ready. Every change should have a reason — improve clarity, prevent bugs, enforce safety, or reduce complexity. Never change code just to change it.
+This skill is the coding standard for C++: the conventions below define how C++ should be written, and how it should be reviewed. Every change should have a reason — improve clarity, prevent bugs, enforce safety, or reduce complexity. Never change code just to change it.
 
-Default to modern C++ (C++17 or later) unless the user specifies a standard. Ask about the target standard if the codebase context is ambiguous and the distinction matters for the review.
+It applies in **two modes**:
+
+- **Authoring** (writing or changing C++) — apply the standards below *as you write*, so the code already meets them. This is the default when the task is to implement or modify C++; there is no separate review write-up.
+- **Reviewing** (auditing existing code) — check code against the standards and return an improved version with a summary, following the format in "How to Deliver the Review" at the end.
+
+Default to modern C++ (C++17 or later) unless the user specifies a standard. Ask about the target standard if the codebase context is ambiguous and the distinction matters.
 
 ## Review Checklist
 
@@ -247,7 +252,7 @@ These are easy to miss in review but critical in production.
 
 ## How to Deliver the Review
 
-When reviewing code, structure your response as follows:
+**This applies in review mode** — when the task is to audit existing code, not when you are authoring new C++ (there, just write code that already meets the standard, with no separate review write-up). Structure the review response as follows:
 
 1. **Start with a brief overall assessment** — one or two sentences on the general quality and the most important issue.
 2. **Present the improved code** as a complete, compilable replacement. Don't make the user stitch fragments together. Include the necessary `#include` directives.
