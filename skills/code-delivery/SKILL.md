@@ -1,6 +1,6 @@
 ---
 name: code-delivery
-description: Use whenever the user asks for any code change — bug fix, feature, refactor, follow-up fix, or PR draft — even a terse "fix this" or "implement X". Governs how the change is delivered (direct edits plus git operations in Claude Code; inline or zipped packages on Claude.ai) and how the PR text artifacts — branch name, commit messages, PR title, PR description — are written. For pre-merge structural cleanup use code-polishing; for language-specific style use python-code-review or cpp-code-review.
+description: Use whenever the user asks for any code change — bug fix, feature, refactor, follow-up fix, or PR draft — even a terse "fix this" or "implement X". Governs how the change is delivered (direct edits plus git operations in Claude Code; inline or zipped packages on Claude.ai) and how the PR text artifacts — branch name, commit messages, PR title, PR description — are written. For design or structural decisions use software-design; for pre-merge structural cleanup use code-polishing; for language-specific style use python-code-review or cpp-code-review.
 ---
 
 # Code Delivery

@@ -9,6 +9,14 @@ How to split a system into parts, how those parts hide detail and talk to each o
 
 **What this covers.** A capable model already writes reasonable names, short functions, early returns, and "get it correct before making it fast" without being told — so those aren't repeated here. This skill collects the design moves that are easy to skip under time pressure but pay off later. Each point is tagged to the book it comes from — **[APOSD]** Ousterhout, **[PP]** Hunt & Thomas, **[CC]** McConnell, **[TF]** Beck.
 
+If you are looking for the classic named principles, they are all here, in this skill's sharper form:
+
+- **SRP (Single Responsibility)** — asked as "does it do too much?" If you cannot name a part without *and*, it holds two jobs; split it.
+- **DRY** — remove the same *fact* written in two places, not two chunks that merely look alike; merging lookalikes couples things that should change apart.
+- **YAGNI / Rule of Three** — build for today's case; generalize on the third real occurrence, not the first imagined one.
+- **KISS** — not a separate rule here: keeping complexity down is the whole point of the skill.
+- **Composition over inheritance / low coupling** — see "Keep parts independent": take dependencies as parameters, and prefer composition to deep class hierarchies.
+
 ## Scope and hand-offs
 
 This skill decides *what* the design problem is. It hands the fix to the skill that owns it:
@@ -51,6 +59,14 @@ Each module should hide one decision — a file format, a wire protocol, a units
 - **Absorb the mess in one place.** When something is unavoidably messy, deal with it once inside the module rather than making every caller handle it. Sensible defaults (the caller passes nothing) beat forcing every caller to fill in every value.
 - **Slightly general beats narrowly specific.** An interface built around the underlying capability is usually cleaner than one built around today's single caller — but only slightly: don't build a plugin system for one file format.
 
+## Keep parts independent
+
+Coupling is the root cost named above; these are the concrete moves that cut it.
+
+- **Pass dependencies in.** A part that reaches for globals or singletons is welded to them — it can't be read, reused, or tested on its own. Take what it needs as parameters (constructor or function arguments) so the caller, not a hidden global, decides **[CC]**.
+- **Hard to test is a design signal.** If a unit needs heavy mocking or elaborate setup to exercise, its dependencies are too tangled — fix that in the design, not by writing more test scaffolding. Low coupling and easy testing are the same property.
+- **Composition over inheritance.** Reuse by combining small independent parts, not by extending deep class hierarchies. Inheritance couples a subclass to the base's internals and to its siblings; reach for it only when the relationship is a genuine *is-a*, not just to share code.
+
 ## Design the error away where you can
 
 The best error handling is the error case you removed by design. Every error path adds a branch at each call site. Before adding one, ask whether you can define the behavior so the situation simply isn't an error:
@@ -86,7 +102,7 @@ Prefer many small cleanups, each checked, over one giant refactor PR — smaller
 
 Not "use good names / comment the why" (a model does that already). The part worth flagging:
 
-- **If it's hard to name, the design is probably off.** If you can't name something clearly without using "and," it likely does more than one thing. Fix the design, not just the name.
+- **If it's hard to name, the design is probably off.** If you can't name something clearly without using "and," it likely does more than one thing. Fix the design, not just the name. (The honest exception is a top-level orchestration function — coordinating a sequence of steps *is* one job, as long as it reads top-to-bottom and hands the real work to named helpers.)
 - **Write the interface comment first.** If the doc comment is hard to write, or you have to describe the messy internals just to explain the interface, the *interface* is wrong — the comment caught it before you wrote the body.
 - **Keep names consistent across the API.** One verb per idea (mixing `get` / `fetch` / `load` makes readers wonder whether the difference means something) and matched pairs (`open` / `close`, `to` / `from`). Spotting the inconsistency is this skill's job; doing the rename is `code-polishing`'s.
 
@@ -110,6 +126,7 @@ A fast structural scan; each hit is a reason to look closer, not an automatic de
 - [ ] **Layer that only passes things through** — adds no real behavior, just plumbing
 - [ ] **Does too much** — you can't name it without "and"; a grab-bag `utils`
 - [ ] **Long reach** — `a.b.c.d.method()` ties you to the whole chain's structure
+- [ ] **Reaches for globals, or hard to test in isolation** — dependencies are tangled; pass them in
 - [ ] **Boolean that switches behavior** — a flag parameter picking between two modes → probably two functions
 - [ ] **Too many error paths** — special cases that could be defined away
 - [ ] **Built for a future that isn't here** — an abstraction / config / hook with exactly one caller
