@@ -1,6 +1,6 @@
 ---
 name: code-delivery
-description: Use this skill whenever the user asks for any code change — bug fix, feature, refactor, follow-up fix, or PR draft. Covers two delivery surfaces. On Claude.ai (no repo access): inline fenced code blocks vs. zipped packages, per-commit zips, `present_files`. In Claude Code (direct repo access): direct file edits and offering to run git operations with the user's authorization. The text artifacts of a PR draft — branch name, commit messages, PR title, PR description, and the writing style for each — are identical on both surfaces. Apply this skill even when the user only says "fix this" or "implement X" — the delivery format is part of the answer, not an afterthought.
+description: Use whenever the user asks for any code change — bug fix, feature, refactor, follow-up fix, or PR draft — even a terse "fix this" or "implement X". Governs how the change is delivered (direct edits plus git operations in Claude Code; inline or zipped packages on Claude.ai) and how the PR text artifacts — branch name, commit messages, PR title, PR description — are written. For pre-merge structural cleanup use code-polishing; for language-specific style use python-code-review or cpp-code-review.
 ---
 
 # Code Delivery

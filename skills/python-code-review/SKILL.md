@@ -1,6 +1,6 @@
 ---
 name: python-code-review
-description: Review and improve Python code for robustness, modularity, performance, and clarity. Use this skill whenever the user asks to review, refactor, clean up, lint, audit, improve, or critique Python code. Also trigger when the user shares Python code and asks to "make it better", "fix this", "check my code", "follow best practices", or mentions PEP 8, Black formatting, type hints, NumPy docstrings, DRY, KISS, YAGNI, caching, or code quality. Trigger for any partial improvement request too — "add type hints", "add docstrings", "make this more performant", "remove redundancy", or "make this more Pythonic". If the user pastes Python code without explicit instructions but it clearly needs cleanup, offer to review it using this skill.
+description: Review and improve Python code for robustness, modularity, performance, and clarity. Use whenever the user asks to review, refactor, lint, audit, improve, or critique Python — including partial asks ("add type hints", "add docstrings", "make this more performant/Pythonic", "remove redundancy"), "make it better"/"check my code" on shared Python, or mentions of PEP 8, Black, type hints, NumPy docstrings, DRY/KISS/YAGNI. If Python is pasted without instructions but clearly needs cleanup, offer a review. For language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
 ---
 
 # Python Code Review & Improvement
