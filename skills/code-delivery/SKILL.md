@@ -30,9 +30,15 @@ This file covers the **Claude Code** surface and everything universal — pre-de
 
 **Git operations require authorization.** Do not run `git checkout -b`, `git add`, `git commit`, `git push`, or `git rm` unprompted. After the edits are in place and the pre-delivery checks have passed, offer to run the git steps and wait for an explicit yes. A typical offer looks like:
 
-> Edits are in place and tests pass. I can create the branch `fix/windows-file-locking`, stage the four changed files, commit with the message below, and push — say the word and I'll run it. Otherwise, you have everything you need to do it by hand.
+> Edits are in place and tests pass. I can create the branch `fix/windows-file-locking`, stage the four changed files, and commit with the message below — say the word and I'll run it, then hand you the `git push` command for your side. Otherwise, you have everything you need to do it by hand.
 
 If the user says yes, run the operations one batch at a time and surface what was actually run (branch created, files staged, commit SHA). If the change spans multiple commits, pause between commits so the user can review each one before the next is made.
+
+**Prefer having the agent commit.** Once authorized, the default path is the agent creating the branch and running the commit itself — it authored the commit message, so committing directly (`git commit -F -` with the message piped in) applies that exact text with no copy-paste drift or truncation. Reserve hand-off-only delivery for when the user declines auto-commit or the environment blocks it. Authorization is still required before the first git write; "prefer" governs *who runs the commit once the user has said yes*, not whether to ask.
+
+**Always surface the commands the user runs on their own side.** After the agent commits, some steps typically remain the user's to run — most commonly the push (`git push -u origin <branch>`), plus opening the PR if that's their workflow. Show each such command in its own copy-pasteable block with the one-line summary above it, even when the agent did everything up to that point. Never leave the user to reconstruct the branch name or remote — hand them the literal command. Push is a network operation that reveals the change externally, so unless durably authorized, prefer handing the push command over running it.
+
+**If auto-commit is declined, write out the full sequence.** When the user wants to run the git steps themselves, deliver the complete ordered command set as copy-pasteable blocks — branch, stage, commit (with the message via `git commit -F -` or an equivalent heredoc so the authored message survives verbatim), any `git rm` for deletions, and the push — each with its one-line summary. The goal is that the user can paste top-to-bottom without editing anything but a path they intend to change.
 
 **Deletions are real.** Removed files come out with `git rm <path>` (after authorization), not by writing instructions for the user to run later. Spell out which paths were removed in the PR draft's file list.
 
@@ -219,8 +225,8 @@ Same four-file Windows lock-offset fix, on the Claude Code surface:
 1. Edited the four files directly in the repo with the editing tools
 2. Ran the project's check suite (`pytest -q`, `ruff check`, `black --check`, `mypy --strict`) from the repo
 3. Wrote the PR draft text in chat: branch name in a plain fence, the commit message in a `markdown` block, PR title in a plain fence with `[fix]` tag, PR description in a `markdown` block with `## Summary` / `## Motivation` / `## Root cause` / `## Testing`
-4. Offered: "Edits are in place and tests pass. I can create `fix/windows-file-locking`, stage the four files, commit with the message above, and push — say the word." Did not run any git commands until the user confirmed.
-5. After confirmation, ran `git checkout -b`, `git add <paths>`, `git commit -F -` with the message piped in, and `git push -u origin HEAD`, surfacing the resulting branch and SHA.
+4. Offered: "Edits are in place and tests pass. I can create `fix/windows-file-locking`, stage the four files, and commit with the message above — say the word and I'll hand you the push command." Did not run any git commands until the user confirmed.
+5. After confirmation, ran `git checkout -b`, `git add <paths>`, and `git commit -F -` with the message piped in, surfacing the resulting branch and SHA — then handed back the push command in its own block with a one-line summary: `git push -u origin fix/windows-file-locking`.
 
 The chat output is mostly the *text artifacts* — no large code blocks, since the edits live in the working tree.
 
@@ -254,5 +260,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 
 - [ ] Edits applied directly to the repo with the editing tools; no full file dumped back into chat as a code block
 - [ ] No `git checkout -b`, `git add`, `git commit`, `git rm`, or `git push` run before the user authorizes it — the offer is made and the response is awaited
-- [ ] After authorization (if granted), git operations were run in order, with the branch name and resulting commit SHA(s) surfaced back to the user
+- [ ] After authorization (if granted), the agent ran the commit itself (message piped via `git commit -F -`, not left for the user to paste), with the branch name and resulting commit SHA(s) surfaced back
+- [ ] The commands the user runs on their own side — the push (`git push -u origin <branch>`) and any PR-open step — are handed back as copy-pasteable blocks, each with a one-line summary; the literal branch name is filled in, not left as a placeholder
+- [ ] If the user declined auto-commit, the full ordered command sequence (branch → stage → commit → any `git rm` → push) was written out copy-pasteable
 - [ ] Multi-commit runs paused between commits so the user can review each before the next
