@@ -13,16 +13,17 @@ A personal collection of reusable artifacts for working with large language mode
 
 ## How the skills relate
 
-The code skills form a short pipeline — clean up the content, optionally run a language-specific style pass, then package and ship — plus one standalone skill for session handoffs.
+Two layers. A **standard** governs how code is written — `software-design` for structure (decomposition, coupling, abstraction) and `python-code-review` / `cpp-code-review` for language (style, types, idioms) — applied while you author. A **pipeline** then readies existing code to ship: clean up, review, package. `session-handoff` stands apart.
 
-![grimoire skills workflow: code-polishing (content cleanup) then python-code-review / cpp-code-review (language style, optional) then code-delivery (package and ship, last); session-handoff is standalone.](docs/assets/skills-workflow.svg)
+![grimoire skills: a standards layer — software-design for structure, python-code-review / cpp-code-review for language — applied while writing, above a pipeline (code-polishing, then the language review pass, then code-delivery to a PR); session-handoff is standalone.](docs/assets/skills-workflow.svg)
 
-- **`code-polishing`** — language-agnostic content cleanup: strip iteration artifacts, dead code, stale docs, encapsulation and naming drift. Runs first.
-- **`python-code-review` / `cpp-code-review`** — the language-specific style pass (PEP 8, typing, idioms / clang-format, modern C++). Optional, picked by language.
-- **`code-delivery`** — packages and ships whatever change exists: commit and PR text plus git operations in Claude Code, or inline/zip packaging on Claude.ai. Runs last, and owns the commit/PR conventions the others defer to.
-- **`session-handoff`** — standalone: writes a cold-start handoff document at the end of a session. Not part of the code-change pipeline.
+- **`software-design`** — the structural standard: decomposition, interfaces, coupling, complexity. Decides *what* the design problem is and hands the fix to the others. Applied while authoring and on design review.
+- **`python-code-review` / `cpp-code-review`** — the language standard (PEP 8, typing, idioms / clang-format, modern C++, RAII). Applied while writing, and again as the review pass in the pipeline.
+- **`code-polishing`** — content cleanup: strip iteration artifacts, dead code, stale docs, naming drift. First pipeline pass.
+- **`code-delivery`** — packages and ships whatever change exists (commit/PR text and git in Claude Code, or inline/zip on Claude.ai). Last pipeline pass; owns the commit/PR conventions the others defer to.
+- **`session-handoff`** — standalone: a cold-start handoff document when context runs low or a session ends. Not part of the code pipeline.
 
-Which one fires: "clean this up" / "PR-ready" → `code-polishing`; "add type hints" / "modernize" → the language review; "fix this" / "open a PR" → `code-delivery`.
+Which one fires: "is this the right abstraction" / "reduce complexity" → `software-design`; writing or reviewing Python/C++ → the language review; "clean this up" → `code-polishing`; "fix this" / "open a PR" → `code-delivery`.
 
 ## Using an artifact
 
