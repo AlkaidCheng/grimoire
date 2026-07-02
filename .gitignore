@@ -18,3 +18,8 @@ venv/
 
 # Node
 node_modules/
+
+# Claude Code (per-developer config and instructions)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
