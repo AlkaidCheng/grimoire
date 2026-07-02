@@ -20,13 +20,31 @@ This file covers the **Claude Code** surface and everything universal — pre-de
 
 **Relationship to `annotated-diff-html`.** When the user asks to *see* the change as a rich, visual HTML diff — a themed, annotated review page to eyeball before pushing, or to share for review — produce it with the `annotated-diff-html` skill (a git-driven renderer: line-numbered table diff, inline per-block reviewer notes pinned to specific lines, a change summary, a per-file copy button; output written to `.claude/diffs/`). It is an *optional review artifact* generated alongside the PR text this skill authors, not a replacement for it — this skill still owns the branch, commit message(s), PR title, and description. Trigger cue: "rich HTML diff", "visual / pretty diff", "annotated diff", "a review page for this PR".
 
+## Remote host: GitHub and GitLab
+
+The change-request artifact has two names for one concept: a **Pull Request (PR)** on GitHub, a **Merge Request (MR)** on GitLab. Everything this skill says about "a PR" — the branch, commit messages, title, description, one-at-a-time delivery, type tags — applies **identically to an MR**. For brevity the prose below writes "PR"; read it as "the host's change request" and substitute per the table when the remote is GitLab.
+
+| Concept | GitHub | GitLab |
+|---|---|---|
+| Artifact noun | Pull Request (PR) | Merge Request (MR) |
+| CLI | `gh` | `glab` |
+| Open it | `gh pr create --base <target> --head <branch> --title … --body-file …` | `glab mr create --target-branch <target> --source-branch <branch> --title … --description …` |
+| Base/target flag | `--base` | `--target-branch` |
+| Add a label | `gh pr edit <n> --add-label <l>` | `glab mr update <n> --label <l>` |
+| Description template path | `.github/PULL_REQUEST_TEMPLATE.md` | `.gitlab/merge_request_templates/*.md` |
+| Page-name prefix (`annotated-diff-html`) | `pr<NNN>_<slug>.html` | `mr<NNN>_<slug>.html` |
+
+**Detect the host from the remote**, don't assume: `git remote get-url origin` → a `github.com` host means GitHub/`gh`; a `gitlab.*` host (including self-hosted GitLab on a custom domain) means GitLab/`glab`. When the domain is ambiguous (a self-hosted instance with a neutral name), disambiguate by which CLI is installed and authenticated (`gh auth status` / `glab auth status`) or ask. Use the matching CLI, noun, flags, and template path throughout; if the chosen CLI isn't installed, hand the user the equivalent command to run rather than switching hosts.
+
+The text-artifact style — type tag, imperative subject, `##`-header description — is host-agnostic and does not change.
+
 ## Surface: Claude Code — direct edits and git operations
 
 **(Claude Code only.)** The deliverable is the edited working tree itself, not a code block or a zip. Apply the change with the editing tools, then write the PR draft text artifacts in chat.
 
 **Edits.** Make the changes directly on the files in the repo. Do not paste the full edited file back into chat as a code block — the user already has the file on disk. Short excerpts in chat are fine when they clarify a specific point; the full change lives in the diff.
 
-**Commands need a one-line summary.** Whenever you show the user a shell command to run or confirm, precede it with a one-line (preferably) executive summary of what it does, so they can judge it without parsing the command itself — e.g. "Push the branch and open the PR:" above a `git push … && gh pr create …` block. This applies to every command you hand back: git, build, install, or one-off.
+**Commands need a one-line summary.** Whenever you show the user a shell command to run or confirm, precede it with a one-line (preferably) executive summary of what it does, so they can judge it without parsing the command itself — e.g. "Push the branch and open the PR:" above a `git push … && gh pr create …` block (or `glab mr create …` on GitLab). This applies to every command you hand back: git, build, install, or one-off.
 
 **Git operations require authorization.** Do not run `git checkout -b`, `git add`, `git commit`, `git push`, or `git rm` unprompted. After the edits are in place and the pre-delivery checks have passed, offer to run the git steps and wait for an explicit yes. A typical offer looks like:
 
@@ -74,7 +92,7 @@ When the work decomposes into multiple PRs (stacked or independent), deliver ONL
 - When the user responds (acceptance, edits, node-validated numbers, or a change of direction), fold that in first; only then prepare the next PR, stacked on the accepted state.
 - Doing the *analysis* for later PRs up front is fine and useful (so the plan is visible); the deliverables come one per turn.
 
-**Stacked PRs and rebasing onto an advancing base.** When a PR builds on an unmerged one, open it with `--base <that-branch>` (not the main branch) so its diff shows only the delta, and note that it retargets to the main branch when the base merges. When the base *does* merge, rebase with `git rebase --onto <main> <old-base> <branch>` — this replays only your commits whether the base landed as a merge commit or a squash, where a plain `git rebase <main>` can replay the base's already-merged commits and conflict. Generate the review diff with the three-dot range (`base...head`) so it matches the host's PR view even after the main branch advances past the fork point.
+**Stacked PRs and rebasing onto an advancing base.** When a PR builds on an unmerged one, open it targeting that branch (`gh pr create --base <that-branch>`, or `glab mr create --target-branch <that-branch>`) rather than the main branch, so its diff shows only the delta, and note that it retargets to the main branch when the base merges. When the base *does* merge, rebase with `git rebase --onto <main> <old-base> <branch>` — this replays only your commits whether the base landed as a merge commit or a squash, where a plain `git rebase <main>` can replay the base's already-merged commits and conflict. Generate the review diff with the three-dot range (`base...head`) so it matches the host's PR view even after the main branch advances past the fork point.
 
 **Language tag per element:**
 
@@ -199,7 +217,7 @@ The PR description is where the depth goes. **Follow a modern GitHub PR template
 - `## Demo / Example` — when behavior is observable: a before/after snippet, a benchmark table, a screenshot, a repro command. Skip when there's nothing to show.
 - `## Related Issues` — `Fixes #123`, `Refs #456`, links to prior PRs in a stack, or the follow-up PRs this one precedes. Skip if none.
 
-Add or rename sections to match the project's own template if one exists in `.github/` (check for `PULL_REQUEST_TEMPLATE.md` and prefer its headers). Common extras: `## Breaking changes`, `## Migration`, `## Risk / rollback`, `## Performance`.
+Add or rename sections to match the project's own template if one exists (GitHub: `.github/PULL_REQUEST_TEMPLATE.md`; GitLab: a file under `.gitlab/merge_request_templates/`) and prefer its headers. Common extras: `## Breaking changes`, `## Migration`, `## Risk / rollback`, `## Performance`.
 
 **Use tables for multi-failure or multi-symptom cases.** When one PR clears several failures or addresses multiple bugs, tabulate which fix maps to which symptom:
 
@@ -246,7 +264,8 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
 - [ ] Body explains *what was wrong* and *why this change*, not just *what changed* — in the **PR description**, not the commit
 - [ ] **Commit messages are concise** — purpose readable at a glance from the subject; no error dumps, essays, or measurements in the commit body (that goes in the PR description)
-- [ ] **PR description uses modern GitHub template headers** — `## Summary`, `## Motivation`, `## Testing`, and others as they apply (matching `.github/PULL_REQUEST_TEMPLATE.md` if present); empty sections dropped, not padded
+- [ ] **PR description uses modern template headers** — `## Summary`, `## Motivation`, `## Testing`, and others as they apply (matching the repo's template if present — `.github/PULL_REQUEST_TEMPLATE.md` on GitHub, `.gitlab/merge_request_templates/` on GitLab); empty sections dropped, not padded
+- [ ] **Host CLI matches the remote** — GitHub → `gh`, GitLab → `glab` (detected from `git remote get-url origin`, not assumed); the "PR" the user sees is called a Merge Request when the remote is GitLab
 - [ ] Suggested commit message included for non-trivial fixes
 - [ ] **Every commit has its own commit message block** — N commits ⇒ N `markdown` blocks (one each); a single-commit change still has exactly one. The delivery is incomplete without them — never ship branch/title/description/edits/zip while the commit message(s) are missing
 - [ ] For PR drafts: branch name, each commit message, PR title, PR description each in their own code block
