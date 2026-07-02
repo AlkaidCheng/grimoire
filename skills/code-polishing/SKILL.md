@@ -73,7 +73,7 @@ When the change is documentation-only and touches no source the test suite impor
 
 ### Category 1: LLM / iteration artifacts
 
-**Standard:** a docstring or comment is professional reference documentation, not a conversation between an assistant and the developer. It describes what the code *is and does* in third-person engineering prose. Anything that reads as chat — addressing the reader, narrating the authoring, editorializing — is an artifact, regardless of whether it contains a flagged keyword.
+**Standard:** a docstring or comment is professional reference documentation, not a conversation between an assistant and the developer. It describes what the code *is and does* in third-person engineering prose. Anything that reads as chat — addressing the reader, narrating the authoring, editorializing — is an artifact, regardless of whether it contains a flagged keyword. (This is Rule 1 of [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md) applied to committed source; the detection patterns below are how you find and remove it.)
 
 The tell-tale shapes:
 - Comments addressing a past or imagined interlocutor: "as we discussed", "per your earlier note", "following our conversation", "as mentioned"
@@ -187,17 +187,9 @@ Often falls out of category 6 — once you've spotted the inconsistency, the ren
 
 ### Category 8: Personal / sensitive / device information
 
-A committed file — source, **test**, config, docstring, comment, or doc — ships to everyone who clones the repo, so none of it should carry the developer's personal or device details:
+A committed file — source, **test**, config, docstring, comment, or doc — ships to everyone who clones the repo, so none of it should carry the developer's personal or device details: real names, usernames, emails, host paths, hostnames, IPs, machine/hardware specs, or secrets. Replace with neutral placeholders. The nuance to hold onto: scrub hardware *identity* (CPU model, hostname, home-directory paths) but keep a measurement *parameter* a stated claim depends on — a thread/core count that makes "6× slower" interpretable. The full rule, with the identity-vs-parameter test and the maintainer-attribution exception, is in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md).
 
-- **Personal identifiers** — a real name, username, handle, or email, or a value derived from one (a home-directory path, an env or fixture name built from a username).
-- **Device / environment specifics** — absolute machine paths, hostnames, IPs, or the developer's specific machine/hardware configuration (CPU model, filesystem, exact specs). Keep performance prose generic — "the local dev machine", "the target node" — never the hardware model. A benchmark that prints host details at *runtime* is fine; baking them into a docstring or comment is not.
-- **Secrets** — tokens, API keys, passwords, credentials.
-
-Replace with neutral placeholders (`/path/to/project`, `$HOME`, `example.com`, a generic `user`). Maintainer-approved attribution (a `LICENSE` holder, a chosen `pyproject` author field) is exempt; when unsure whether a value is approved, ask before shipping.
-
-**Hardware *identity* vs measurement *parameter*.** Scrub what identifies the machine or author — CPU model/brand, hostname, username, home-directory paths. Do **not** scrub a quantity a stated claim depends on — a thread/core count, row count, byte size, or iteration count that makes a number or ratio interpretable. A comment like "8 vs 64 threads ≈ 6× slower" becomes meaningless if the counts are replaced with "the full thread count". Test: would deleting the value make a quantitative claim unverifiable? Then it is a parameter — keep it. The hardware that *produced* a number is identity; the number's *parameters* are not.
-
-This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, and prose for anything that identifies the author or their machine, rather than relying on a brittle keyword list (and never hard-code the developer's identifiers into the scan or this skill). It is removal-only and behavior-neutral, so it rides in the same first commit as the other artifact removals (Category 1/2).
+This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, and prose for anything that identifies the author or their machine. It is removal-only and behavior-neutral, so it rides in the same first commit as the other artifact removals (Category 1/2).
 
 ## Commit message style for polishing
 
