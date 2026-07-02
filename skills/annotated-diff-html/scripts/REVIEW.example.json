@@ -1,0 +1,16 @@
+{
+  "title": "Short label for this diff (also the page heading and output slug)",
+  "base": "main",
+  "head": null,
+  "output": ".claude/diffs/pr123_my-change.html",
+  "files": [],
+  "summary": "<p>One-paragraph overview of the change. HTML is allowed: <code>code</code>, <b>bold</b>, links.</p>",
+  "notes": [
+    {
+      "file": "path/to/changed_file.py",
+      "needle": "def my_function",
+      "title": "Why this block changed",
+      "why": "The rationale a reviewer needs. Attaches to the first ADDED line in `file` whose text contains `needle`."
+    }
+  ]
+}
