@@ -126,7 +126,7 @@ Code is read far more often than it is written. Optimize for the reader.
 - **Comprehensions when they are simpler than a loop**. A 3-line comprehension with nested conditions is harder to read than the equivalent loop — use the loop.
 - **Name intermediate values**: If a single expression needs a comment to explain it, break it into named intermediate variables. The variable name becomes the comment.
 - **Comments only when necessary**: A comment explains *why*, not *what*. `# Retry with backoff because the upstream API rate-limits aggressively` is useful. `# Increment counter` is noise. Delete commented-out code — that is what version control is for.
-- **TODOs include context**: `# TODO(alex): Remove after migration to v2 API (PROJ-1234)`. Orphan TODOs are clutter.
+- **TODOs include context**: `# TODO(username): Remove after migration to v2 API (PROJ-1234)`. Orphan TODOs are clutter.
 
 ## 9. Error Handling
 
