@@ -23,3 +23,6 @@ node_modules/
 .claude/
 CLAUDE.md
 CLAUDE.local.md
+
+# Local-only skills (present via the skills symlink, not part of the provider-neutral baseline)
+/skills/colstore/
