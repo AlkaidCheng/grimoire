@@ -124,35 +124,12 @@ The structure of a PR draft response is:
 
 ## Audience: write every artifact for a human reviewer
 
-Branch names, commit messages, PR titles, and PR descriptions are read by teammates who have **no knowledge of how the change was produced**. They never saw a conversation, a prompt, a skill, or any tool — only the repository and the PR. Write as the engineer who owns the change, for the engineer who will review it.
+Branch names, commit messages, PR titles and descriptions — and committed docstrings and comments — are read by teammates who have **no knowledge of how the change was produced**. Two hard rules, checked on every delivery:
 
-**Strict rule — never leak the production process.** This is a hard requirement, checked on every delivery. No branch name, commit message, PR title, or PR description may reference:
+- **No process leak** — no internal tooling/skill names, decomposition labels ("Band A", "Phase 2"), assistant references ("as an AI", "Claude"), conversation references ("as discussed", "per your request"), or generation meta-commentary ("auto-generated", "if wanted"). The substance is often legitimate — rephrase it in plain engineering terms. This extends to committed docstrings and comments (professional third-person prose, never a conversation or an edit history). The test: would a new teammate reading only the repo understand every word?
+- **No personal/sensitive/device info** — no real names, usernames, emails, host/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (**tests and configs included**); use neutral placeholders. Scrub hardware *identity*, but keep a measurement *parameter* a claim depends on; maintainer-approved attribution (a `LICENSE` holder) is exempt.
 
-- **Internal tooling, skills, or process names** — e.g. `python-code-review`, `cpp-code-review`, `code-delivery`, "the polishing skill", "the review pass", "per the skill". A reviewer cannot resolve these names; they read as noise and expose the text as machine-generated.
-- **Internal decomposition labels** — "Band A", "Phase 2", "Round 3", "the cleanup pass", "step 1 of the refactor". These leak most often because they read like natural section headers, yet a reviewer has no plan to map them onto. A PR named by its *position in your plan* ("Band A: docs cleanup") must be reworded to the *change itself* ("Remove stale docs and dead code").
-- **The assistant or its nature** — no "as an AI", "I generated this", "this was produced by", "Claude", "the model", or any first-person-assistant framing.
-- **The conversation that produced the change** — no "as discussed", "as you asked", "per your request", "you wanted me to", "the user requested".
-- **Meta-commentary about generation** — no "auto-generated", "drafted for you", "if wanted", "let me know if you'd like", "hope this helps".
-
-The *substance* behind such a note is often legitimate — it's the *reference* that's forbidden. Rephrase in plain engineering terms:
-
-> Bad: "A language-specific style pass (`python-code-review` for `utils.py`, `cpp-code-review` for `kernel.cpp`) can follow if wanted."
->
-> Good: "Scope is limited to structural cleanup with no behavior change; formatting and idiom-level changes are intentionally left to a separate pass."
-
-The good version conveys the same plan — follow-up style work is out of scope — without naming a tool only the author's toolchain knows. The same applies to branch names and titles: `polish/strip-llm-artifacts` leaks; `polish/docstrings-stale-docs-dead-helpers` describes the work.
-
-**This rule extends to committed source — docstrings and code comments — not only the four text artifacts above.** A docstring or comment is permanent reference documentation read by every future maintainer; it must describe the code in professional, third-person engineering prose, never read as a conversation with a developer or a record of how the change was authored. The same forbidden references apply (toolchain/skill names, the assistant, the conversation, generation meta-commentary), plus the conversational tells the `code-polishing` skill catalogs (Category 1): first-person "we did not expect", editorial flourishes ("the lever that turns…", "the row that matters"), asides addressed to the reader, and history-narration of an edit in place of describing current behavior. Write what the code *is and does*, not what changed or why-for-you. The dedicated in-source sweep is owned by `code-polishing`; this rule makes it part of delivery so artifacts don't ship needing it.
-
-**The test:** would a teammate who just joined, reading only the repo and the PR, understand every word? If a term makes sense only to someone who watched the change being generated, delete it before delivering.
-
-**Strict rule — never expose the developer's personal, sensitive, or device information.** A hard requirement on every delivery, checked the same way as the process-leak rule above. No committed file (source, **test**, config, docs), commit message, branch name, PR title, or PR description may contain:
-
-- **Personal identifiers** — the developer's real name, username, handle, or email, or any value derived from them. A test path like `/envs/<username>`, a home directory like `/Users/jdoe/...`, or an env value carrying a username all leak identity.
-- **Device / environment specifics** — absolute machine paths, usernames embedded in paths, hostnames, IP addresses, the developer's specific machine or hardware configuration (CPU model, filesystem, exact specs), or other host details. Keep performance notes generic ("the local dev machine", "the target node"); a benchmark printing host details at *runtime* is fine, baking them into prose is not.
-- **Secrets** — tokens, API keys, passwords, credentials.
-
-Use neutral placeholders instead: `/opt/env`, `/path/to/project`, `/data`, `example.com`, `$HOME`, a generic `user`. This applies to **test fixtures and example configs** as much as to prose — a string in a unit test ships to everyone who clones the repo. Deliberate, maintainer-approved attribution (a `LICENSE` copyright holder, a `pyproject` author field the maintainer chose) is exempt; when unsure whether a value is approved, ask before publishing.
+The full rule — the complete forbidden-reference list, the rephrase example, and the identity-vs-parameter test — is in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md), checked the same way on every delivery.
 
 ## PR title style
 
