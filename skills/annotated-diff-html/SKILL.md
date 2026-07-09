@@ -5,7 +5,7 @@ description: Generate a self-contained, themed HTML review page from a git diff 
 
 # Annotated Diff HTML
 
-Turn a `git diff` into a rich, self-contained HTML review page — the visual, annotated diff a reviewer reads before merging, rather than scrolling raw `git diff` output. The page is a single file (inline CSS/JS, no assets, no server), reads the diff live from git so it always reflects the current branch or working tree, and carries a day/night theme toggle, line numbers, a `git --stat` change summary, an overall summary card, per-block reviewer notes pinned to specific lines, and a per-file Copy button.
+Turn a `git diff` into a rich, self-contained HTML review page — the visual, annotated diff a reviewer reads before merging, rather than scrolling raw `git diff` output. The page is a single file (inline CSS/JS, no assets, no server), reads the diff live from git so it always reflects the current branch or working tree, and carries a day/night theme toggle, line numbers, a `git --stat` change summary, an overall summary card, per-block reviewer notes pinned to specific lines, GitHub-style character-level highlighting of the exact changed spans within a modified line, and a per-file Copy button.
 
 Reach for it when the user asks for a "rich HTML diff", a "visual diff", a "pretty diff", an "annotated diff", or a review page for a change / PR / MR — or when a `code-delivery` hand-off wants a review artifact alongside the PR text.
 
