@@ -5,8 +5,9 @@ repository, so the page always reflects the current branch / working tree. Drop 
 script into any project's ``.claude/scripts/`` and drive it with a small JSON config.
 
 House style: a day/night/auto theme toggle, a line-numbered table diff with inline
-per-block notes, a per-file one-click Copy button, a ``git --stat`` change summary,
-and an overall summary card.
+per-block notes, GitHub-style character-level highlighting of the exact changed spans
+within a modified line, a per-file one-click Copy button, a ``git --stat`` change
+summary, and an overall summary card.
 
 Usage:
     python gen_diff_html.py REVIEW.json      # render one annotated diff
@@ -36,6 +37,7 @@ directory, named to match its output (``pr<NNN>_<slug>.json`` -> ``pr<NNN>_<slug
 
 from __future__ import annotations
 
+import difflib
 import html
 import json
 import os
@@ -58,18 +60,21 @@ _CSS = """
 :root{
  --bg:#fbfbfa;--fg:#24292f;--mut:#6e7781;--bd:#d8dee4;--hd:#f3f4ee;--card:#fff;
  --add:#e6ffec;--addb:#2da44e;--rem:#ffebe9;--remb:#cf222e;--hunk:#eef1ff;--hunkf:#5a6196;
+ --addw:#abf2bc;--remw:#fdb8c0;
  --num:#aab1bb;--accent:#5a6196;--note:#fff8e6;--noteb:#d9b441;--notef:#6b531a;
  --addn:#1a7f37;--remn:#cf222e;--link:#3a59c9;
 }
 :root[data-theme="dark"]{
  --bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--bd:#30363d;--hd:#161b22;--card:#0d1117;
  --add:#12261e;--addb:#2ea043;--rem:#25171b;--remb:#f85149;--hunk:#161d33;--hunkf:#9aa4e0;
+ --addw:#3fb95059;--remw:#f8514959;
  --num:#484f58;--accent:#6e77c9;--note:#1d1a12;--noteb:#9c8326;--notef:#e3cd8a;
  --addn:#3fb950;--remn:#f85149;--link:#7d8df0;
 }
 @media(prefers-color-scheme:dark){:root[data-theme="auto"]{
  --bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--bd:#30363d;--hd:#161b22;--card:#0d1117;
  --add:#12261e;--addb:#2ea043;--rem:#25171b;--remb:#f85149;--hunk:#161d33;--hunkf:#9aa4e0;
+ --addw:#3fb95059;--remw:#f8514959;
  --num:#484f58;--accent:#6e77c9;--note:#1d1a12;--noteb:#9c8326;--notef:#e3cd8a;
  --addn:#3fb950;--remn:#f85149;--link:#7d8df0;
 }}
@@ -118,6 +123,11 @@ td.s{padding-left:6px;-webkit-user-select:text;user-select:text}
 tr.add td{background:var(--add)} tr.add td.s{border-left:3px solid var(--addb)}
 tr.rem td{background:var(--rem)} tr.rem td.s{border-left:3px solid var(--remb)}
 tr.ctx td{background:var(--ctx,transparent)} tr.ctx td.s{border-left:3px solid transparent}
+/* GitHub-style intra-line highlight: the exact changed characters within a modified
+   line get a darker shade, coloured by the row kind (green on adds, red on removals). */
+td.s .w{border-radius:.2em}
+tr.add td.s .w{background:var(--addw)}
+tr.rem td.s .w{background:var(--remw)}
 tr.hunk td{background:var(--hunk);color:var(--hunkf);padding:3px 8px}
 td.note{background:var(--note);border-left:4px solid var(--noteb);padding:10px 14px;
  white-space:normal;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
@@ -236,6 +246,97 @@ def parse(diff_text: str) -> list[DiffFile]:
     return files
 
 
+# GitHub-style intra-line highlighting. Within a "replace" block -- a run of removed
+# lines immediately followed by a run of added lines -- each removed line is paired with
+# the added line at the same offset and a character-level diff marks the exact spans that
+# changed. Lines too dissimilar to share a meaningful edit keep only their whole-line
+# highlight (a scattered character diff there is noise, not signal).
+_INLINE_MIN_RATIO = 0.25
+# Bridge an unchanged run shorter than this between two changed spans into a single span,
+# so a one- or two-character island (a shared ``_``, ``->``, ``= ``) does not fragment
+# ``value`` -> ``result`` into a confetti of tiny highlights -- matching how GitHub
+# coalesces near-adjacent edits.
+_INLINE_MERGE_GAP = 3
+
+Opcode: TypeAlias = tuple[str, int, int, int, int]
+
+
+def _merge_opcodes(opcodes: list[Opcode]) -> list[Opcode]:
+    """Coalesce changed spans separated by a short equal run into one changed span."""
+    merged: list[Opcode] = []
+    i = 0
+    while i < len(opcodes):
+        tag, a1, a2, b1, b2 = opcodes[i]
+        bridges = (
+            tag == "equal"
+            and (a2 - a1) < _INLINE_MERGE_GAP
+            and merged
+            and merged[-1][0] != "equal"
+            and i + 1 < len(opcodes)
+            and opcodes[i + 1][0] != "equal"
+        )
+        if bridges:
+            _, prev_a1, _, prev_b1, _ = merged.pop()
+            _, _, next_a2, _, next_b2 = opcodes[i + 1]
+            merged.append(("replace", prev_a1, next_a2, prev_b1, next_b2))
+            i += 2
+        else:
+            merged.append(opcodes[i])
+            i += 1
+    return merged
+
+
+def _inline_pair(rem: str, add: str) -> tuple[str, str] | None:
+    """Character-level highlight for one removed / added line pair.
+
+    Returns ``(rem_html, add_html)`` -- the escaped code cells with each changed span
+    wrapped in ``<span class='w'>`` -- or ``None`` when the two lines are too dissimilar
+    for an inline highlight to help (the whole-line highlight already carries it).
+    """
+    matcher = difflib.SequenceMatcher(a=rem, b=add, autojunk=False)
+    if matcher.ratio() < _INLINE_MIN_RATIO:
+        return None
+    rem_html: list[str] = []
+    add_html: list[str] = []
+    for tag, a1, a2, b1, b2 in _merge_opcodes(matcher.get_opcodes()):
+        if tag == "equal":
+            rem_html.append(html.escape(rem[a1:a2]))
+            add_html.append(html.escape(add[b1:b2]))
+            continue
+        if a2 > a1:
+            rem_html.append(f"<span class='w'>{html.escape(rem[a1:a2])}</span>")
+        if b2 > b1:
+            add_html.append(f"<span class='w'>{html.escape(add[b1:b2])}</span>")
+    return "".join(rem_html), "".join(add_html)
+
+
+def _inline_highlights(rows: list[DiffRow]) -> dict[int, str]:
+    """Map row index -> pre-rendered code-cell HTML for lines with intra-line highlights.
+
+    Within each replace block (consecutive removed lines followed by consecutive added
+    lines) the i-th removed line is paired with the i-th added line; rows absent from the
+    returned map render with a plain ``html.escape`` of their text.
+    """
+    highlights: dict[int, str] = {}
+    total = len(rows)
+    i = 0
+    while i < total:
+        if rows[i][0] != "rem":
+            i += 1
+            continue
+        rem_start = i
+        while i < total and rows[i][0] == "rem":
+            i += 1
+        add_start = i
+        while i < total and rows[i][0] == "add":
+            i += 1
+        for rem_idx, add_idx in zip(range(rem_start, add_start), range(add_start, i)):
+            pair = _inline_pair(rows[rem_idx][3], rows[add_idx][3])
+            if pair is not None:
+                highlights[rem_idx], highlights[add_idx] = pair
+    return highlights
+
+
 def render(
     files: list[DiffFile], notes: list[dict[str, str]]
 ) -> tuple[str, int, int, list[str]]:
@@ -263,11 +364,13 @@ def render(
             f"title='Copy this file&#39;s new-side code'>Copy</button>"
             f"</span></div><table>"
         )
-        for kind, old_no, new_no, text in rows:
+        highlights = _inline_highlights(rows)
+        for idx, (kind, old_no, new_no, text) in enumerate(rows):
+            cell = highlights.get(idx, html.escape(text))
             out.append(
                 f"<tr class='{kind}'><td class='n' data-n='{old_no}'></td>"
                 f"<td class='n' data-n='{new_no}'></td>"
-                f"<td class='s'>{html.escape(text)}</td></tr>"
+                f"<td class='s'>{cell}</td></tr>"
             )
             if kind == "add":
                 for i, note in enumerate(notes):
