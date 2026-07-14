@@ -186,6 +186,7 @@ Things to drop:
 - "This commit..." preambles
 - Marketing language ("greatly improved", "robust")
 - Anything the diff or the PR description already says
+- **Any AI/assistant co-author trailer** — no `Co-Authored-By: Claude …` (or other model/assistant) line; attribute the commit to the human author only. This is the trailer form of the "no assistant references" rule in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md).
 
 ## PR description style
 
@@ -240,7 +241,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 
 **Universal — applies on both surfaces:**
 
-- [ ] **No artifact reveals the toolchain** — branch name, PR title, commit messages, and PR description contain no skill/tool names, assistant references, conversation references ("as discussed", "you asked"), or generation meta-commentary ("if wanted", "auto-generated"); every term resolves for a teammate who only sees the repo
+- [ ] **No artifact reveals the toolchain** — branch name, PR title, commit messages, and PR description contain no skill/tool names, assistant references (including any `Co-Authored-By: Claude …` commit trailer), conversation references ("as discussed", "you asked"), or generation meta-commentary ("if wanted", "auto-generated"); every term resolves for a teammate who only sees the repo
 - [ ] **Committed docstrings and comments read as professional reference prose** — they describe what the code is and does, with no conversational artifacts (first-person "we", editorial flourishes, reader asides), no edit-history narration in place of behavior, and none of the toolchain/assistant/conversation references above
 - [ ] **No personal/sensitive/device info** — no real names, usernames, emails, home/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (including tests, configs, and docstrings/comments), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)

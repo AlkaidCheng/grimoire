@@ -10,7 +10,7 @@ No committed file, commit message, branch name, PR title, PR description, or han
 
 - **Internal tooling, skills, or process names** — e.g. `python-code-review`, `cpp-code-review`, `code-delivery`, "the polishing skill", "the review pass", "per the skill". A reviewer cannot resolve these names; they read as noise and expose the text as machine-generated.
 - **Internal decomposition labels** — "Band A", "Phase 2", "Round 3", "the cleanup pass", "step 1 of the refactor". These leak most often because they read like natural section headers, yet a reviewer has no plan to map them onto. A PR named by its *position in your plan* ("Band A: docs cleanup") must be reworded to the *change itself* ("Remove stale docs and dead code").
-- **The assistant or its nature** — no "as an AI", "I generated this", "this was produced by", "Claude", "the model", or any first-person-assistant framing.
+- **The assistant or its nature** — no "as an AI", "I generated this", "this was produced by", "Claude", "the model", or any first-person-assistant framing. This includes commit metadata: **no `Co-Authored-By: Claude …` (or any other AI/assistant) trailer** — commits are attributed to the human author only.
 - **The conversation that produced the change** — no "as discussed", "as you asked", "per your request", "you wanted me to", "the user requested".
 - **Meta-commentary about generation** — no "auto-generated", "drafted for you", "if wanted", "let me know if you'd like", "hope this helps".
 
