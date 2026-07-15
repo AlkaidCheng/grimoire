@@ -24,5 +24,11 @@ node_modules/
 CLAUDE.md
 CLAUDE.local.md
 
+# Codex (per-developer config and instructions)
+.codex/
+.agents/
+AGENTS.md
+AGENTS.local.md
+
 # Local-only skills (present via the skills symlink, not part of the provider-neutral baseline)
 /skills/colstore/
