@@ -199,6 +199,22 @@ The PR description is a **public review artifact**, not a transcript or a privat
 2. It is not already obvious from the diff or the host's status checks.
 3. It remains appropriate if the repository and PR are public.
 
+**Write from the product user's point of view, not as a delivery report.** For
+a feature or behavior change, lead with what a user can now do and show the
+normal command, API call, or observable result when one exists. Explain files,
+types, and architecture afterward, and only where they clarify the public
+interface, guarantees, migration, or review risk. For maintenance work with no
+user-visible workflow, lead with the repository or operator outcome instead of
+inventing a demo.
+
+The body must stand on its own without the conversation or an internal project
+plan. Remove status-report and decomposition language such as "this slice",
+"the next gate", "the accepted plan", or references to a numbered phase that
+has no public meaning. Translate legitimate scope into product terms: say what
+is available in this PR and what remains unsupported. Before publishing, read
+the rendered body as a new user or reviewer; if the opening describes how the
+work was organized rather than why the change matters, rewrite it.
+
 Keep the body concise without narrowing it to the headline feature. Account for every material part of the diff — including independent behavior, packaging, documentation, migration, or repository-policy changes — while avoiding a line-by-line restatement. Before finalizing, compare the body's sections with the changed-file list and diff summary; every material change needs a reviewer-facing explanation or an intentional reason to omit it.
 
 Never include credentials or secrets in a PR or delivery artifact. Put non-secret internal operational notes, private repository/history details, release-environment setup, and conversation-only instructions in the maintainer handoff outside the PR.
@@ -258,6 +274,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] **Committed docstrings and comments read as professional reference prose** — they describe what the code is and does, with no conversational artifacts (first-person "we", editorial flourishes, reader asides), no edit-history narration in place of behavior, and none of the toolchain/assistant/conversation references above
 - [ ] **No personal/sensitive/device info** — no real names, usernames, emails, home/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (including tests, configs, and docstrings/comments), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
 - [ ] **PR body is public-safe and review-relevant** — every detail helps explain motivation or behavior, assess a material change, or make a review decision; non-secret internal operations, private history, and maintainer-only setup remain in the maintainer handoff outside the PR; credentials and secrets appear in neither artifact
+- [ ] **Behavior-changing PR body starts with the user outcome** — normal usage or observable behavior precedes implementation detail; the description stands alone without conversation context, delivery-status narration, or internal plan labels
 - [ ] **PR body covers the full material diff** — every independent behavior, packaging, documentation, migration, or repository-policy change is represented without restating files line by line
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
 - [ ] Body explains *what was wrong* and *why this change*, not just *what changed* — in the **PR description**, not the commit
