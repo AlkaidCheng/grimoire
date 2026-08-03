@@ -38,6 +38,8 @@ If the user says yes, run the operations one batch at a time and surface what wa
 
 **Always surface the commands the user runs on their own side.** After the agent commits, some steps typically remain the user's to run — most commonly the push (`git push -u origin <branch>`), plus opening the PR if that's their workflow. Show each such command in its own copy-pasteable block with the one-line summary above it, even when the agent did everything up to that point. Never leave the user to reconstruct the branch name or remote — hand them the literal command. Push is a network operation that reveals the change externally, so unless durably authorized, prefer handing the push command over running it.
 
+**Always surface a created or updated PR.** Retrieve the canonical URL from the hosting service, verify that it names the intended base and head branches, and include it as a clickable link in the final handoff. Never make the user search for a PR the agent created or changed.
+
 **If auto-commit is declined, write out the full sequence.** When the user wants to run the git steps themselves, deliver the complete ordered command set as copy-pasteable blocks — branch, stage, commit (with the message via `git commit -F -` or an equivalent heredoc so the authored message survives verbatim), any `git rm` for deletions, and the push — each with its one-line summary. The goal is that the user can paste top-to-bottom without editing anything but a path they intend to change.
 
 **Deletions are real.** Removed files come out with `git rm <path>` (after authorization), not by writing instructions for the user to run later. Spell out which paths were removed in the PR draft's file list.
@@ -52,7 +54,7 @@ Applies to both surfaces. Run whatever gates the project has, even if the user d
 - C/C++ extensions: rebuild from clean, look for warnings under `-Wall -Wextra`
 - If there's a `Makefile` / `CMakeLists.txt` / `pyproject.toml` script that bundles checks, prefer that
 
-Mention the results in one or two lines after the deliverable. Don't pad the response with a wall of test output — `the suite passes in 1.5s; ruff/black/mypy clean` is enough. If anything failed, show the failure verbatim.
+Mention the results in one or two lines after the deliverable. Don't pad the response with a wall of test output — `the suite passes in 1.5s; ruff/black/mypy clean` is enough. If anything failed, show the failure verbatim. These handoff results do not automatically belong in the PR description; include validation there only when it gives the reviewer material evidence that status checks do not already convey.
 
 When a change *provably cannot* affect a gate — a docs-only edit, or a new script/benchmark file the test suite never imports — say so with the reason ("docs-only; the suite doesn't import this — unaffected") instead of running the full suite for show. Only claim "unaffected" when you can point at *why* (no imported source changed); otherwise run it.
 
@@ -132,10 +134,11 @@ The structure of a PR draft response is:
 
 ## Audience: write every artifact for a human reviewer
 
-Branch names, commit messages, PR titles and descriptions — and committed docstrings and comments — are read by teammates who have **no knowledge of how the change was produced**. Two hard rules, checked on every delivery:
+Branch names, commit messages, PR titles and descriptions — and committed docstrings and comments — are read by teammates who have **no knowledge of how the change was produced**. Three hard rules are checked on every delivery:
 
 - **No process leak** — no internal tooling/skill names, decomposition labels ("Band A", "Phase 2"), assistant references ("as an AI", "Claude"), conversation references ("as discussed", "per your request"), or generation meta-commentary ("auto-generated", "if wanted"). The substance is often legitimate — rephrase it in plain engineering terms. This extends to committed docstrings and comments (professional third-person prose, never a conversation or an edit history). The test: would a new teammate reading only the repo understand every word?
 - **No personal/sensitive/device info** — no real names, usernames, emails, host/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (**tests and configs included**); use neutral placeholders. Scrub hardware *identity*, but keep a measurement *parameter* a claim depends on; maintainer-approved attribution (a `LICENSE` holder) is exempt.
+- **Public and review-relevant** — a PR body is not a private maintainer handoff. Include only information that helps a reviewer understand the motivation or behavior, assess a material part of the diff, or make a review decision. Omit confidential operations, private repository/history details, conversation-only instructions, and setup reminders intended only for the maintainer. Never include credentials or secrets in a PR or delivery artifact. Put non-secret maintainer-only follow-up in the maintainer handoff outside the PR.
 
 The full rule — the complete forbidden-reference list, the rephrase example, and the identity-vs-parameter test — is in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md), checked the same way on every delivery.
 
@@ -190,17 +193,27 @@ Things to drop:
 
 ## PR description style
 
-The PR description is where the depth goes. **Follow a modern GitHub PR template: `##` section headers, filled only where they apply.** A reviewer should be able to jump to Testing or Motivation without reading the whole thing. Use this header set as the default, dropping any section that has nothing to say (don't pad a header with filler):
+The PR description is a **public review artifact**, not a transcript or a private maintainer handoff. A detail belongs only when it passes all three tests:
+
+1. It helps a reviewer understand motivation or behavior, assess a material change, or make a review decision.
+2. It is not already obvious from the diff or the host's status checks.
+3. It remains appropriate if the repository and PR are public.
+
+Keep the body concise without narrowing it to the headline feature. Account for every material part of the diff — including independent behavior, packaging, documentation, migration, or repository-policy changes — while avoiding a line-by-line restatement. Before finalizing, compare the body's sections with the changed-file list and diff summary; every material change needs a reviewer-facing explanation or an intentional reason to omit it.
+
+Never include credentials or secrets in a PR or delivery artifact. Put non-secret internal operational notes, private repository/history details, release-environment setup, and conversation-only instructions in the maintainer handoff outside the PR.
+
+**Follow a modern GitHub PR template: `##` section headers, filled only where they apply.** A reviewer should be able to jump to the relevant material without reading the whole description. Use these sections as candidates, dropping any section that has nothing substantive to say:
 
 - `## Summary` — 1–3 sentences: what this PR does and the headline result. The first thing a reviewer reads.
 - `## Motivation` — why this change exists: the bug, the failing CI, the regression, the feature need. State the symptom concretely (quote the error or the measured regression).
 - `## Changes` — the high-level *what*, ideally as a short list or sub-headed blocks when there are independent pieces. Include the key code excerpt(s) when small. Don't restate the diff line by line.
 - `## Root cause` *(for fixes)* — the actual mechanism, not "there was a bug". Cite a doc or spec when the behavior is surprising. This is the section the commit message deliberately omits.
-- `## Testing` — what was run and what passed, what's still unverified, and on what platform/hardware (e.g. "Linux container, single core: 672 passed, ruff/black/mypy clean. Scaling unverified — needs the dual-EPYC node."). Be explicit about the limits of local validation.
+- `## Testing` — include only material evidence: regression coverage for the reported failure, non-obvious platform or compatibility validation, meaningful benchmark results, or an important validation gap. Do not list routine unit tests, linting, formatting, type checking, packaging, or CI/CD success merely to say they passed; status checks already carry that information.
 - `## Demo / Example` — when behavior is observable: a before/after snippet, a benchmark table, a screenshot, a repro command. Skip when there's nothing to show.
 - `## Related Issues` — `Fixes #123`, `Refs #456`, links to prior PRs in a stack, or the follow-up PRs this one precedes. Skip if none.
 
-Add or rename sections to match the project's own template if one exists in `.github/` (check for `PULL_REQUEST_TEMPLATE.md` and prefer its headers). Common extras: `## Breaking changes`, `## Migration`, `## Risk / rollback`, `## Performance`.
+Add or rename sections to match the project's own template if one exists in `.github/` (check for `PULL_REQUEST_TEMPLATE.md` and prefer its headers). Sections such as `## Breaking changes`, `## Migration`, `## Performance`, or `## Risk / rollback` belong only when they convey a concrete reviewer-facing decision. Never add `## Release setup` solely to carry maintainer instructions; keep those in the private handoff.
 
 **Use tables for multi-failure or multi-symptom cases.** When one PR clears several failures or addresses multiple bugs, tabulate which fix maps to which symptom:
 
@@ -244,10 +257,12 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] **No artifact reveals the toolchain** — branch name, PR title, commit messages, and PR description contain no skill/tool names, assistant references (including any `Co-Authored-By: Claude …` commit trailer), conversation references ("as discussed", "you asked"), or generation meta-commentary ("if wanted", "auto-generated"); every term resolves for a teammate who only sees the repo
 - [ ] **Committed docstrings and comments read as professional reference prose** — they describe what the code is and does, with no conversational artifacts (first-person "we", editorial flourishes, reader asides), no edit-history narration in place of behavior, and none of the toolchain/assistant/conversation references above
 - [ ] **No personal/sensitive/device info** — no real names, usernames, emails, home/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (including tests, configs, and docstrings/comments), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
+- [ ] **PR body is public-safe and review-relevant** — every detail helps explain motivation or behavior, assess a material change, or make a review decision; non-secret internal operations, private history, and maintainer-only setup remain in the maintainer handoff outside the PR; credentials and secrets appear in neither artifact
+- [ ] **PR body covers the full material diff** — every independent behavior, packaging, documentation, migration, or repository-policy change is represented without restating files line by line
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
 - [ ] Body explains *what was wrong* and *why this change*, not just *what changed* — in the **PR description**, not the commit
 - [ ] **Commit messages are concise** — purpose readable at a glance from the subject; no error dumps, essays, or measurements in the commit body (that goes in the PR description)
-- [ ] **PR description uses modern GitHub template headers** — `## Summary`, `## Motivation`, `## Testing`, and others as they apply (matching `.github/PULL_REQUEST_TEMPLATE.md` if present); empty sections dropped, not padded
+- [ ] **PR description uses only applicable GitHub template headers** — matches `.github/PULL_REQUEST_TEMPLATE.md` when present; empty, routine-validation, maintainer-setup, and hypothetical risk sections are omitted rather than padded
 - [ ] Suggested commit message included for non-trivial fixes
 - [ ] **Every commit has its own commit message block** — N commits ⇒ N `markdown` blocks (one each); a single-commit change still has exactly one. The delivery is incomplete without them — never ship branch/title/description/edits/zip while the commit message(s) are missing
 - [ ] For PR drafts: branch name, each commit message, PR title, PR description each in their own code block
@@ -263,5 +278,6 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] No `git checkout -b`, `git add`, `git commit`, `git rm`, or `git push` run before the user authorizes it — the offer is made and the response is awaited
 - [ ] After authorization (if granted), the agent ran the commit itself (message piped via `git commit -F -`, not left for the user to paste), with the branch name and resulting commit SHA(s) surfaced back
 - [ ] The commands the user runs on their own side — the push (`git push -u origin <branch>`) and any PR-open step — are handed back as copy-pasteable blocks, each with a one-line summary; the literal branch name is filled in, not left as a placeholder
+- [ ] After creating or updating a PR, its canonical URL was verified and included as a clickable link in the final handoff
 - [ ] If the user declined auto-commit, the full ordered command sequence (branch → stage → commit → any `git rm` → push) was written out copy-pasteable
 - [ ] Multi-commit runs paused between commits so the user can review each before the next
