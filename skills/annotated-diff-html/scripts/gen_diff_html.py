@@ -1,8 +1,8 @@
 """Render a git diff as a rich, themed, annotated review page (the pre-push diff HTML).
 
 A generic, project-agnostic tool: it reads the diff live from git in the current
-repository, so the page always reflects the current branch / working tree. Drop the
-script into any project's ``.claude/scripts/`` and drive it with a small JSON config.
+repository, so the page always reflects the current branch / working tree. Keep the
+JSON config in the active coding agent's repository-local ``diffs/`` directory.
 
 House style: a day/night/auto theme toggle, a line-numbered table diff with inline
 per-block notes, GitHub-style character-level highlighting of the exact changed spans
@@ -11,7 +11,7 @@ summary, and an overall summary card.
 
 Usage:
     python gen_diff_html.py REVIEW.json      # render one annotated diff
-    python gen_diff_html.py --index          # rebuild only the folder index
+    python gen_diff_html.py --index DIR      # rebuild only DIR/index.html
 
 REVIEW.json keys (all optional):
     title       crumbs + page heading label                (default: the branch name)
@@ -19,7 +19,7 @@ REVIEW.json keys (all optional):
     head        git ref for the right side                 (default: the working tree)
     branch      display label for the diffed ref           (default: current branch)
     base_label  display label for the base                 (default: the base ref)
-    output      output path                                (default: .claude/diffs/<slug>_diff.html)
+    output      output path                                (default: REVIEW.json with .html suffix)
     files       restrict the diff to these paths           (default: all changed paths)
     summary     overall summary card, HTML allowed         (default: none)
     notes       [{file, needle, title, why}] inline callouts; each attaches to the first
@@ -38,14 +38,15 @@ Custom protocols work in standalone browsers, where the OS can route the URI to 
 editor. Editor webviews commonly block them. Removed lines carry no link because the
 line is absent from the new side of the diff.
 
-The default output directory (``.claude/diffs/``) is a convention, not a requirement;
-set ``output`` to write anywhere. The folder index links each ``pr<NNN>_*`` / ``mr<NNN>_*``
-page (GitHub PRs / GitLab MRs) ordered by number.
+When ``output`` is omitted, the page is written beside REVIEW.json with the same
+basename. Place the config in the active coding agent's directory -- for example,
+``.codex/diffs/`` for Codex or ``.claude/diffs/`` for Claude Code -- so the generated
+page and folder index remain owned by the agent that created them.
 
-Keep each REVIEW.json next to the page it produces -- in the same ``.claude/diffs/``
-directory, named to match its output (``pr<NNN>_<slug>.json`` -> ``pr<NNN>_<slug>.html``)
--- so a page's input always sits beside it and is reusable. The index scans only
-``*.html``, so the JSON inputs sit alongside without affecting it.
+Keep each REVIEW.json next to the page it produces, named to match its output
+(``pr<NNN>_<slug>.json`` -> ``pr<NNN>_<slug>.html``), so a page's input always sits
+beside it and is reusable. The index scans only ``*.html``, so the JSON inputs sit
+alongside without affecting it.
 """
 
 from __future__ import annotations
@@ -511,7 +512,7 @@ def _colorize_stat(stat: str) -> str:
     return "\n".join(out)
 
 
-def build_index(out_dir: str = ".claude/diffs") -> int:
+def build_index(out_dir: str) -> int:
     """Rebuild ``index.html`` from the ``pr<NNN>_*`` / ``mr<NNN>_*`` diffs in ``out_dir``.
 
     Each diff's number and kind come from its filename prefix (``pr`` for a GitHub PR,
@@ -556,14 +557,16 @@ def build_index(out_dir: str = ".claude/diffs") -> int:
 
 
 def main() -> int:
-    if len(sys.argv) == 2 and sys.argv[1] == "--index":
-        count = build_index()
-        print(f"rebuilt .claude/diffs/index.html ({count} diffs)")
+    if len(sys.argv) == 3 and sys.argv[1] == "--index":
+        out_dir = sys.argv[2]
+        count = build_index(out_dir)
+        print(f"rebuilt {os.path.join(out_dir, 'index.html')} ({count} diffs)")
         return 0
     if len(sys.argv) != 2:
-        print("usage: gen_diff_html.py REVIEW.json | --index", file=sys.stderr)
+        print("usage: gen_diff_html.py REVIEW.json | --index DIR", file=sys.stderr)
         return 2
-    with open(sys.argv[1]) as fh:
+    config_path = sys.argv[1]
+    with open(config_path, encoding="utf-8") as fh:
         config = json.load(fh)
 
     base = config.get("base", "main")
@@ -577,8 +580,8 @@ def main() -> int:
     files_filter = config.get("files") or []
     notes = config.get("notes", [])
     summary = config.get("summary", "")
-    slug = re.sub(r"[^A-Za-z0-9]+", "_", title).strip("_").lower() or "diff"
-    out_path = config.get("output") or f".claude/diffs/{slug}_diff.html"
+    default_output = os.path.splitext(config_path)[0] + ".html"
+    out_path = config.get("output") or default_output
 
     repo_root = (
         config.get("repo_root") or _run(["git", "rev-parse", "--show-toplevel"]).strip()
@@ -622,7 +625,7 @@ def main() -> int:
 
     out_dir = os.path.dirname(out_path) or "."
     os.makedirs(out_dir, exist_ok=True)
-    with open(out_path, "w") as fh:
+    with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(_head(title) + header + body + FOOTER)
     print(f"wrote {out_path} ({len(files)} files, +{total_add} -{total_rem})")
     # Keep the folder index in step: rebuild it whenever a diff is (re)generated.

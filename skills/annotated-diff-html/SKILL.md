@@ -1,6 +1,6 @@
 ---
 name: annotated-diff-html
-description: Generate a self-contained, themed HTML review page from a git diff — a line-numbered table diff, inline per-block reviewer notes pinned to specific lines, a change summary, a per-file Copy button, and a day/night/auto theme toggle — read live from git and written to `.claude/diffs/`. Use when the user wants a rich or visual HTML diff, a "pretty" or annotated diff to eyeball a change before merging, or a shareable review page for a PR/MR; it is the review artifact `code-delivery` reaches for when a rich diff is requested. Driven by a small `REVIEW.json` config; one bundled Python script, no dependencies beyond git and Python 3.9+.
+description: Generate a self-contained, themed HTML review page from a git diff — a line-numbered table diff, inline per-block reviewer notes pinned to specific lines, a change summary, a per-file Copy button, and a day/night/auto theme toggle — read live from git and stored in the active coding agent's repository-local diff directory. Use when the user wants a rich or visual HTML diff, a "pretty" or annotated diff to eyeball before merging, or a shareable review page for a PR/MR. Driven by a small `REVIEW.json` config and one bundled Python script.
 ---
 
 # Annotated Diff HTML
@@ -15,10 +15,10 @@ Reach for it when the user asks for a "rich HTML diff", a "visual diff", a "pret
 
 ```
 python <this-skill>/scripts/gen_diff_html.py REVIEW.json   # render one review page
-python <this-skill>/scripts/gen_diff_html.py --index        # rebuild only the folder index
+python <this-skill>/scripts/gen_diff_html.py --index <agent-dir>/diffs
 ```
 
-It writes the HTML to the config's `output` path (default `.claude/diffs/<slug>_diff.html`) and rebuilds a folder `index.html` linking every page.
+It writes the HTML to the config's `output` path. When `output` is omitted, it replaces the config's `.json` suffix with `.html`, keeping the page beside its input. It also rebuilds an `index.html` in that directory.
 
 ## The REVIEW.json config
 
@@ -26,12 +26,12 @@ A small JSON file drives each page. Every key is optional:
 
 | key | meaning | default |
 |---|---|---|
-| `title` | page heading + crumb label (and the output slug) | the branch name |
+| `title` | page heading + crumb label | the branch name |
 | `base` | git ref to diff against | `main` |
 | `head` | git ref for the right side | the working tree |
 | `branch` | display label for the diffed ref | current branch |
 | `base_label` | display label for the base | the base ref |
-| `output` | output path | `.claude/diffs/<slug>_diff.html` |
+| `output` | output path | the `REVIEW.json` path with an `.html` suffix |
 | `files` | restrict the diff to these paths | all changed paths |
 | `summary` | overall summary card, HTML allowed | none |
 | `notes` | inline callouts — see below | none |
@@ -64,9 +64,10 @@ Annotate the **design-bearing** lines — an invariant being enforced, why a gua
 
 ## Where the output lives
 
-- Write pages to **`.claude/diffs/`** — a conventional, gitignored review folder. Set `output` to `.claude/diffs/<name>.html`.
-- **Name each page by its change number** so the folder is traceable: `pr<NNN>_<slug>.html` for a GitHub PR, `mr<NNN>_<slug>.html` for a GitLab MR. The tool auto-rebuilds `.claude/diffs/index.html` — a table of every `pr`/`mr` page ordered by number, titles pulled from each page. For a not-yet-opened PR/MR use the next number and rename if it differs when opened.
-- **Keep each `REVIEW.json` next to the page it produced**, in `.claude/diffs/`, named to match (`pr<NNN>_<slug>.json` → `pr<NNN>_<slug>.html`). A page's input then sits beside it and stays reusable — don't leave it in a temp / scratch dir. The index scans only `*.html`, so the JSON inputs don't affect it.
+- Use the **active coding agent's repository-local directory**: `.codex/diffs/` for Codex, `.claude/diffs/` for Claude Code, or the equivalent directory owned by another coding agent. Never put one agent's review artifacts in another agent's directory merely because that directory already exists.
+- Copy `scripts/REVIEW.example.json` into that directory and name it for the change. Omitting `output` makes the renderer place the HTML beside the config automatically.
+- **Name each page by its change number** so the folder is traceable: `pr<NNN>_<slug>.html` for a GitHub PR, `mr<NNN>_<slug>.html` for a GitLab MR. The tool auto-rebuilds `<agent-dir>/diffs/index.html` — a table of every `pr`/`mr` page ordered by number, with titles pulled from each page. For a not-yet-opened PR/MR, use the next number and rename it if the assigned number differs.
+- **Keep each `REVIEW.json` next to the page it produced**, named to match (`pr<NNN>_<slug>.json` → `pr<NNN>_<slug>.html`). The index scans only `*.html`, so JSON inputs do not affect it.
 
 ## Viewing
 
@@ -80,7 +81,6 @@ A minimal, complete `REVIEW.json` (see `scripts/REVIEW.example.json` for the ann
 {
   "title": "Add exponential backoff to the retry path",
   "base": "main",
-  "output": ".claude/diffs/pr42_retry-backoff.html",
   "summary": "<p>Replaces the fixed 200 ms retry delay with capped exponential backoff and full jitter, so a downstream outage no longer produces synchronized retry storms.</p>",
   "notes": [
     {"file": "client/retry.py", "needle": "def _sleep", "title": "Full jitter, not equal jitter", "why": "Equal jitter still synchronizes the low bits across clients; full jitter (uniform 0..cap) decorrelates them, which is the point of the change."}
@@ -88,12 +88,12 @@ A minimal, complete `REVIEW.json` (see `scripts/REVIEW.example.json` for the ann
 }
 ```
 
-Run it from the repo root:
+For Codex, save that config as `.codex/diffs/pr42_retry-backoff.json`, then run it from the repo root:
 
 ```
-python <this-skill>/scripts/gen_diff_html.py .claude/diffs/pr42_retry-backoff.json
+python <this-skill>/scripts/gen_diff_html.py .codex/diffs/pr42_retry-backoff.json
 ```
 
 ## Relationship to `code-delivery`
 
-This is an optional **review artifact** produced alongside the PR text that `code-delivery` authors, not a replacement for it. When delivering a change and the user asks to *see* the diff as a rich page — to review before pushing, or to share a visual diff — generate it with this skill and point them at the `.claude/diffs/` output. `code-delivery` still owns the branch, commit message(s), PR title, and PR description; this skill just renders the change for the eye.
+This is an optional **review artifact** produced alongside the PR text that `code-delivery` authors, not a replacement for it. When delivering a change and the user asks to *see* the diff as a rich page — to review before pushing, or to share a visual diff — generate it with this skill and point them at the active coding agent's `<agent-dir>/diffs/` output. `code-delivery` still owns the branch, commit message(s), PR title, and PR description; this skill just renders the change for the eye.
