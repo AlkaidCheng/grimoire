@@ -219,6 +219,43 @@ Keep the body concise without narrowing it to the headline feature. Account for 
 
 Never include credentials or secrets in a PR or delivery artifact. Put non-secret internal operational notes, private repository/history details, release-environment setup, and conversation-only instructions in the maintainer handoff outside the PR.
 
+## Changelog entry style
+
+When the repository keeps a changelog (`CHANGELOG.md`, Keep-a-Changelog or
+similar), a user-facing change adds one entry under the unreleased section in
+the matching category (Added / Changed / Deprecated / Removed / Fixed), citing
+the PR/MR number.
+
+**An entry is minimal and user-facing: one sentence saying what changed for
+the user, just enough to recognize the change.** The changelog is scanned by
+users asking what a release means for them; it is not a review artifact.
+Mechanism, rationale, internals, option enumerations, migration walkthroughs,
+and verification notes all belong in the PR/MR description that the cited
+number links to — never in the entry.
+
+- Name the surface the user touches (the option, command, class, method), not
+  the implementation behind it.
+- One entry per independent change; neither merge unrelated changes into one
+  entry nor split one change across several.
+- A breaking change states what breaks and its replacement, still in one
+  sentence.
+- A second short sentence is acceptable when the change is not recognizable
+  without it; anything needing a third sentence goes in the PR description.
+
+Wrong (a review summary in the changelog):
+
+> - Rework the HTTP client's retry handling: each request now routes through a
+>   RetryPolicy object resolving per-host limits from the retry table with the
+>   standard constructor overrides, a new send_with_retry() wraps the request
+>   (returning the response and the attempt count) while send() remains the
+>   single-attempt path, and the fixed 200 ms delay becomes capped exponential
+>   backoff with full jitter so synchronized retry storms [...]
+
+Right:
+
+> - Retry failed HTTP requests with capped exponential backoff, configurable
+>   per host through a new `retry_policy` option. (#123)
+
 **Follow a modern GitHub PR template: `##` section headers, filled only where they apply.** A reviewer should be able to jump to the relevant material without reading the whole description. Use these sections as candidates, dropping any section that has nothing substantive to say:
 
 - `## Summary` — 1–3 sentences: what this PR does and the headline result. The first thing a reviewer reads.
@@ -288,6 +325,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] **Every commit has its own commit message block** — N commits ⇒ N `markdown` blocks (one each); a single-commit change still has exactly one. The delivery is incomplete without them — never ship branch/title/description/edits/zip while the commit message(s) are missing
 - [ ] For PR drafts: branch name, each commit message, PR title, PR description each in their own code block
 - [ ] **PR title starts with a type tag** — `[fix]` / `[feat]` / `[perf]` / `[doc]` / `[chore]`
+- [ ] **Changelog entry (when the repo keeps one) is minimal and user-facing** — one sentence per change, in the matching category, citing the PR/MR; implementation detail stays in the PR description
 - [ ] **Any deletions are spelled out** and marked `(removed)` in the commit's file list
 - [ ] Only ONE PR delivered this turn; planned follow-up PRs are named, not produced
 
