@@ -156,6 +156,17 @@ The full rule — the complete forbidden-reference list, the rephrase example, a
 
 Pick the tag for the PR's primary intent. A performance fix that also corrects wrong results is `[fix]` (correctness dominates); a pure speedup that keeps results identical is `[perf]`. After the tag, a single imperative phrase: `[perf] Route moderate-K multi-column reads through the column pool`. Keep it under ~70 characters including the tag.
 
+**Apply the host's labels.** When the repository defines labels (check with
+`gh label list` / `glab label list`), label the PR/MR at creation with every
+label that applies and carries information: the type label matching the
+title's tag — `[fix]` pairs with a bug label, `[feat]` with a feature or
+enhancement label, `[doc]` with a docs label, `[chore]` with a chore or
+maintenance label — plus the component, scope, or breaking-change labels the
+change genuinely belongs to. Skip labels that add no information because they
+would fit any PR (a generic "requires code review", say), and leave priority,
+status, and triage labels to the maintainers. When drafting without host
+access, name the intended labels in the handoff instead.
+
 ## Commit message style
 
 **Every commit must ship with its own commit message, in its own `markdown` block. This is a strict requirement for every PR draft and every change delivered as commits — whether the code arrives as zips, as edits in the working tree, or as a patch.** A PR draft with N commits has N commit-message blocks; a single-commit change has exactly one. Never deliver a branch, PR title, PR description, patch, zip, or set of edits without the matching commit message(s) — the commit message is the primary artifact, not an optional extra. If a delivery would otherwise end with the commit message missing, it is incomplete; stop and add it before sending. One commit = one message; never fold two commits' text into one block, and never let the PR description stand in for a commit message (they serve different readers: `git log` vs the review page).
@@ -325,6 +336,7 @@ The chat output is mostly the *text artifacts* — no large code blocks, since t
 - [ ] **Every commit has its own commit message block** — N commits ⇒ N `markdown` blocks (one each); a single-commit change still has exactly one. The delivery is incomplete without them — never ship branch/title/description/edits/zip while the commit message(s) are missing
 - [ ] For PR drafts: branch name, each commit message, PR title, PR description each in their own code block
 - [ ] **PR title starts with a type tag** — `[fix]` / `[feat]` / `[perf]` / `[doc]` / `[chore]`
+- [ ] **Labels applied** when the host defines them — every applicable informative label (the type matching the title's tag, plus component/scope); no-information and priority/status/triage labels skipped
 - [ ] **Changelog entry (when the repo keeps one) is minimal and user-facing** — one sentence per change, in the matching category, citing the PR/MR; implementation detail stays in the PR description
 - [ ] **Any deletions are spelled out** and marked `(removed)` in the commit's file list
 - [ ] Only ONE PR delivered this turn; planned follow-up PRs are named, not produced
