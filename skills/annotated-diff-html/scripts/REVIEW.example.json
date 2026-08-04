@@ -1,8 +1,7 @@
 {
-  "title": "Short label for this diff (also the page heading and output slug)",
+  "title": "Short label for this diff (also the page heading)",
   "base": "main",
   "head": null,
-  "output": ".claude/diffs/pr123_my-change.html",
   "editor": "vscode",
   "files": [],
   "summary": "<p>One-paragraph overview of the change. HTML is allowed: <code>code</code>, <b>bold</b>, links.</p>",
