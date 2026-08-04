@@ -24,6 +24,19 @@ REVIEW.json keys (all optional):
     summary     overall summary card, HTML allowed         (default: none)
     notes       [{file, needle, title, why}] inline callouts; each attaches to the first
                 added line in `file` containing `needle`. Unused notes are reported.
+    editor      editor for the line-number deep-links: one of vscode (default),
+                vscode-insiders, cursor, windsurf, zed, idea, pycharm, sublime,
+                or "none" to omit the links                (default: "vscode")
+    editor_url  custom deep-link template with {path}/{line}/{col} placeholders,
+                overriding `editor` (e.g. "myeditor://{path}:{line}")  (default: none)
+    repo_root   absolute directory the diff paths resolve against for the deep-links
+                                                           (default: git toplevel)
+
+A new-side line number (added or context line) is a deep link that opens that file
+at the exact line in the configured editor; Alt-clicking a code line does the same.
+Custom protocols work in standalone browsers, where the OS can route the URI to the
+editor. Editor webviews commonly block them. Removed lines carry no link because the
+line is absent from the new side of the diff.
 
 The default output directory (``.claude/diffs/``) is a convention, not a requirement;
 set ``output`` to write anywhere. The folder index links each ``pr<NNN>_*`` / ``mr<NNN>_*``
@@ -44,17 +57,67 @@ import os
 import re
 import subprocess
 import sys
-from typing import TypeAlias
+from typing import Callable, TypeAlias
+from urllib.parse import quote
 
 # One diff row: (kind, old_line_no, new_line_no, text). A line number is "" when it
 # does not apply to that side (an added line has no old number, a removed line no new
 # number). ``kind`` is one of "hunk" | "add" | "rem" | "ctx".
 DiffRow: TypeAlias = tuple[str, int | str, int | str, str]
 DiffFile: TypeAlias = tuple[str, list[DiffRow]]
+EditorLinker: TypeAlias = Callable[[str, int | str], str]
 
 # localStorage key for the persisted theme choice. Project-agnostic so any repo's
 # pages share the preference without colliding on a project-specific name.
 _THEME_KEY = "diffhtml-theme"
+
+# Editor deep-link templates: a new-side line number opens the file at that line
+# in the configured editor. {path} is the absolute file path (percent-encoded,
+# slashes kept), {line}/{col} the position. The vscode family takes the path after
+# ``//file`` with its leading slash intact (macOS/Linux), for example
+# ``vscode://file/path/to/project/module.py:12:1``.
+_EDITOR_TEMPLATES = {
+    "vscode": "vscode://file{path}:{line}:{col}",
+    "vscode-insiders": "vscode-insiders://file{path}:{line}:{col}",
+    "cursor": "cursor://file{path}:{line}:{col}",
+    "windsurf": "windsurf://file{path}:{line}:{col}",
+    "zed": "zed://file{path}:{line}",
+    "idea": "idea://open?file={path}&line={line}",
+    "pycharm": "pycharm://open?file={path}&line={line}",
+    "sublime": "subl://open?url=file://{path}&line={line}",
+}
+
+
+def _make_editor_linker(
+    editor: str | None, editor_url: str | None, repo_root: str
+) -> EditorLinker | None:
+    """Build a ``(path, line) -> editor deep-link`` function, or ``None`` to omit links.
+
+    The deep-link opens the file at the line in the configured editor when the page
+    is viewed in a standalone browser. A custom ``editor_url`` template wins;
+    otherwise ``editor`` selects a known scheme (an unknown name falls back to VS
+    Code with a warning), and the values "none"/"off"/"" disable the links.
+    """
+    if editor_url:
+        template = editor_url
+    elif not editor or str(editor).lower() in ("none", "off", "false", ""):
+        return None
+    else:
+        template = _EDITOR_TEMPLATES.get(str(editor).lower())
+        if template is None:
+            print(
+                f"warning: unknown editor {editor!r}; using vscode. Known: "
+                f"{', '.join(sorted(_EDITOR_TEMPLATES))} (or set editor_url).",
+                file=sys.stderr,
+            )
+            template = _EDITOR_TEMPLATES["vscode"]
+
+    def link(path: str, line: int | str) -> str:
+        encoded_path = quote(os.path.join(repo_root, path), safe="/")
+        return template.format(path=encoded_path, line=line, col=1)
+
+    return link
+
 
 _CSS = """
 :root{
@@ -117,6 +180,13 @@ td.n{width:1%;min-width:44px;text-align:right;color:var(--num);
    clean code (no line numbers), in every browser, not just those that honor
    user-select:none for the clipboard. */
 td.n::before{content:attr(data-n)}
+/* A new-side line number is a link that opens the file at that line in the editor.
+   It fills the gutter cell (block) so the whole cell is the click target, renders
+   its number from data-n like the plain gutter, and stays out of the copy layer
+   (it inherits the gutter's user-select:none). */
+a.ln{display:block;color:inherit;text-decoration:none;cursor:pointer}
+a.ln::before{content:attr(data-n)}
+a.ln:hover{color:var(--accent);text-decoration:underline}
 /* The code column is explicitly selectable (with the vendor prefix) so manual
    selection + copy works regardless of the non-selectable gutter beside it. */
 td.s{padding-left:6px;-webkit-user-select:text;user-select:text}
@@ -177,6 +247,13 @@ function copyDiff(btn,ev){ev.stopPropagation();var lines=[];
  if(navigator.clipboard&&navigator.clipboard.writeText){
   navigator.clipboard.writeText(text).then(function(){_flash(btn);},function(){_fallbackCopy(text);_flash(btn);});
  }else{_fallbackCopy(text);_flash(btn);}}
+/* Each new-side line number opens the file at that line in the configured editor.
+   Alt-click a code line to do the same from the line's text; a plain click there
+   still places the cursor or starts a selection. */
+document.addEventListener('click',function(ev){if(!ev.altKey)return;
+ var cell=ev.target&&ev.target.closest?ev.target.closest('td.s'):null;if(!cell)return;
+ var a=cell.parentNode.querySelector('a.ln');
+ if(a&&a.getAttribute('href')){ev.preventDefault();window.location.href=a.href;}});
 """
 
 FOOTER = (
@@ -338,9 +415,14 @@ def _inline_highlights(rows: list[DiffRow]) -> dict[int, str]:
 
 
 def render(
-    files: list[DiffFile], notes: list[dict[str, str]]
+    files: list[DiffFile],
+    notes: list[dict[str, str]],
+    linker: EditorLinker | None = None,
 ) -> tuple[str, int, int, list[str]]:
     """Render parsed files to HTML, attaching each note to its first matching added line.
+
+    ``linker`` (a ``(path, line) -> deep-link`` function, or ``None``) turns each
+    new-side line number into an editor link that opens that file at that line.
 
     Returns the HTML body, the total added / removed line counts, and the needles of
     any notes that never matched (so the caller can warn about them).
@@ -367,9 +449,18 @@ def render(
         highlights = _inline_highlights(rows)
         for idx, (kind, old_no, new_no, text) in enumerate(rows):
             cell = highlights.get(idx, html.escape(text))
+            if linker is not None and new_no != "":
+                href = html.escape(linker(path, new_no), quote=True)
+                tip = html.escape(f"Open {path}:{new_no} in editor", quote=True)
+                new_cell = (
+                    f"<td class='n'><a class='ln' data-n='{new_no}' "
+                    f"href='{href}' title='{tip}'></a></td>"
+                )
+            else:
+                new_cell = f"<td class='n' data-n='{new_no}'></td>"
             out.append(
                 f"<tr class='{kind}'><td class='n' data-n='{old_no}'></td>"
-                f"<td class='n' data-n='{new_no}'></td>"
+                f"{new_cell}"
                 f"<td class='s'>{cell}</td></tr>"
             )
             if kind == "add":
@@ -489,6 +580,13 @@ def main() -> int:
     slug = re.sub(r"[^A-Za-z0-9]+", "_", title).strip("_").lower() or "diff"
     out_path = config.get("output") or f".claude/diffs/{slug}_diff.html"
 
+    repo_root = (
+        config.get("repo_root") or _run(["git", "rev-parse", "--show-toplevel"]).strip()
+    )
+    linker = _make_editor_linker(
+        config.get("editor", "vscode"), config.get("editor_url"), repo_root
+    )
+
     # Three-dot (merge-base) when head is a ref, so the diff matches the GitHub PR
     # view even after the base branch advances past the fork point; plain base vs
     # the working tree when head is omitted.
@@ -499,10 +597,15 @@ def main() -> int:
         stat_cmd += ["--", *files_filter]
     files = parse(_run(diff_cmd))
     stat = _run(stat_cmd).rstrip("\n")
-    body, total_add, total_rem, missing = render(files, notes)
+    body, total_add, total_rem, missing = render(files, notes, linker)
 
     stat_html = _colorize_stat(stat)
 
+    link_hint = (
+        " &middot; click a line number (or Alt-click a line) to open it in your editor."
+        if linker is not None
+        else ""
+    )
     header = (
         f"<div class='crumbs'>Review packet &middot; {html.escape(title)}</div>"
         f"<h1>Annotated diff &middot; <code>{html.escape(branch)}</code></h1>"
@@ -510,7 +613,8 @@ def main() -> int:
         f"<span class='chip'>{len(files)} files</span>"
         f"<span class='chip addn'>+{total_add}</span>"
         f"<span class='chip remn'>&minus;{total_rem}</span> &middot; "
-        f"click a file header to collapse, or its Copy button to copy the code.</div>"
+        f"click a file header to collapse, or its Copy button to copy the code."
+        f"{link_hint}</div>"
     )
     if summary:
         header += f"<div class='card'><p>{summary}</p></div>"

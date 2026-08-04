@@ -35,8 +35,15 @@ A small JSON file drives each page. Every key is optional:
 | `files` | restrict the diff to these paths | all changed paths |
 | `summary` | overall summary card, HTML allowed | none |
 | `notes` | inline callouts — see below | none |
+| `editor` | editor scheme for the clickable line links: `vscode` / `vscode-insiders` / `cursor` / `windsurf` / `zed` / `idea` / `pycharm` / `sublime`, or `none` to omit | `vscode` |
+| `editor_url` | custom deep-link template with `{path}`/`{line}`/`{col}` placeholders, overriding `editor` | none |
+| `repo_root` | absolute dir the diff paths resolve against for the links | git toplevel |
 
 The diff is taken as `base...head` (three-dot / merge-base) when `head` is a ref — so it matches the host's PR view even after the base branch advances — or `base` vs the working tree when `head` is omitted. `scripts/REVIEW.example.json` is a ready-to-edit template.
+
+## Clickable line numbers
+
+Each new-side line number is a deep link that opens the file at that line in the configured editor; Alt-clicking a code line does the same. The default `vscode://` handoff works when the page is **viewed in a standalone browser** (Chrome / Safari / Firefox), where the OS can route the URI to VS Code. Editor webviews commonly block custom protocols, so open the page in a standalone browser to use these links. Removed lines carry no link. Set `editor` to `cursor` (etc.) for a different scheme, provide an `editor_url` template for another editor, or use `none` to omit the links.
 
 ## Inline notes: annotate intent, not mechanics
 

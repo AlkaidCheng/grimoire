@@ -3,6 +3,7 @@
   "base": "main",
   "head": null,
   "output": ".claude/diffs/pr123_my-change.html",
+  "editor": "vscode",
   "files": [],
   "summary": "<p>One-paragraph overview of the change. HTML is allowed: <code>code</code>, <b>bold</b>, links.</p>",
   "notes": [
