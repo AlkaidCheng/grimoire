@@ -1,53 +1,45 @@
 ---
 name: python-code-review
-description: The coding standard for Python — style, naming, type hints, NumPy docstrings, performance, and safety — to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
+description: The coding standard for Python (style, naming, type hints, NumPy docstrings, performance, and safety) to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
 ---
 
 # Python Code Review & Improvement
 
-This skill is the coding standard for Python: the conventions below define how Python should be written, and how it should be reviewed. Every change must have a clear justification — improve correctness, clarity, performance, or reduce complexity. Never change code just to change it.
+The coding standard for Python: how it is written and how it is reviewed. The language-agnostic conduct is defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md) and applies here in full: the change ethos (every change needs a reason; never change code just to change it) and the two working modes, **authoring** (apply the standard as you write; the default when implementing or modifying Python) and **reviewing** (audit against it and return an improved version per "Delivering the Review").
 
-It applies in **two modes**:
-
-- **Authoring** (writing or changing Python) — apply the standards below *as you write*, so the code already meets them. This is the default when the task is to implement or modify Python; there is no separate review write-up.
-- **Reviewing** (auditing existing code) — check code against the standards and return an improved version with a summary, following the format in "Delivering the Review" at the end.
-
-Work through the criteria in order: style and naming first so the rest of the code is readable; types and docstrings make intent explicit; structure, performance, and safety last, because they build on the foundation.
+Work the criteria in order: style and naming first, then types and docstrings, then structure, performance, and safety.
 
 ## 1. Formatting & Style
 
-Format all code with **Black** defaults (88-character line length) and follow **PEP 8** for everything Black does not auto-fix.
+Format with **Black** defaults (88-character lines); **PEP 8** for everything Black does not auto-fix.
 
-- **Imports**: Three groups separated by a blank line — standard library, third-party, local. Each group sorted alphabetically. Remove unused imports. Never use wildcard imports (`from module import *`).
-- **Import only what is necessary**: Import specific names rather than whole modules when only a few names are used (`from math import sqrt, pi` rather than `import math` if `math` is used twice). Reverse this when many names are used or when the module prefix aids readability.
-- **Defer heavy or optional imports**: For modules with significant import overhead (e.g., `tensorflow`, `torch`, `matplotlib.pyplot`, `pandas`) or those needed only for a specific code path, import them inside the function that uses them rather than at the top of the module. This keeps startup fast and avoids forcing users to install dependencies they will never use.
-- **Whitespace**: Two blank lines before top-level definitions, one between methods. No trailing whitespace, no spaces inside brackets.
+- **Imports**: three groups separated by a blank line (standard library, third-party, local), each alphabetized. Remove unused imports. Never `from module import *`.
+- **Import only what is necessary**: `from math import sqrt, pi` over `import math` when few names are used; reverse when many names are used or the module prefix aids readability.
+- **Defer heavy or optional imports** (`tensorflow`, `torch`, `matplotlib.pyplot`, `pandas`, or path-specific deps) into the function that uses them: keeps startup fast, avoids forcing unused installs.
+- **Whitespace**: two blank lines before top-level definitions, one between methods; no trailing whitespace, no spaces inside brackets.
 
 ## 2. Naming
 
-Names are the most important form of documentation. A good name removes the need for a comment.
+The language-agnostic naming doctrine (names as the primary documentation, specific over generic, verb-led functions, booleans as questions, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
-- **Be specific, not generic**: Avoid `data`, `info`, `result`, `tmp`, `val`, `obj`, `item`, `x`, `arr`, `df`, `lst` as substantive variable names. Use `user_records`, `retry_count`, `weighted_mean`, `pending_orders` instead. Generic names are acceptable only in very short scopes (a one-line comprehension, a 2-line helper).
-- **Be standard**: Use `snake_case` for functions, methods, variables, and modules; `PascalCase` for classes; `UPPER_SNAKE_CASE` for module-level constants. Leading underscore (`_helper`) signals internal use. Never use `l`, `O`, or `I` as single-letter names.
-- **Functions describe actions, starting with a verb**: `fetch_user_profile`, `validate_email`, `parse_config`, `compute_gradient`. Avoid noun-only names like `user_profile()` for a function.
-- **Booleans read as questions**: `is_valid`, `has_permission`, `should_retry`, `was_modified`.
-- **Match the domain vocabulary**: If the field calls it a "ledger", do not call it `record_list`. If the field calls it a "spike", do not call it `event`.
-- **Loop variables**: `for user in users`, not `for u in users` or `for item in users`. Single-letter names are acceptable only for numeric indices (`for i in range(n)`) or trivially short comprehensions.
+- **Standard casing**: `snake_case` functions/methods/variables/modules; `PascalCase` classes; `UPPER_SNAKE_CASE` module constants; leading `_` signals internal. Never `l`, `O`, or `I` as single-letter names.
+- **Python-flavored generics count as generic**: `arr`, `df`, `lst` are no better than `data` or `tmp` as substantive names.
+- **Loop variables**: `for user in users`, not `for u in users` or `for item in users`. Single letters only for numeric indices (`for i in range(n)`) or trivially short comprehensions.
 
 ## 3. Type Hints
 
-Add type hints to every function signature (parameters and return). They double as documentation and enable static analysis.
+Annotate every function signature (parameters and return): documentation plus static analysis.
 
-- **Use built-in generics on Python 3.9+**: `list[str]`, `dict[str, int]`, `tuple[int, ...]`. Import from `typing` only on older versions.
-- **Use `X | None` on Python 3.10+** instead of `Optional[X]`. Same convention for unions.
-- **Define `TypeAlias` at module level** for complex repeated types so signatures stay readable.
-- **A quoted-string `TypeAlias` must be self-contained.** When you quote a forward reference to break a circular import, inline it to concrete types (`"str | os.PathLike[str] | Reader"`), not to another module-level alias name. `typing.get_type_hints()` — used by dataclasses, Pydantic, attrs, and documentation tooling — re-evaluates the string in the *importing* module's namespace, which may not contain that alias, raising `NameError` at runtime. This passes the formatter, the linter, the type checker, and the test suite; the only thing that catches it is calling `get_type_hints()` on a function that consumes the alias from another module.
-- **Annotate locals only when the type is not obvious**. The type checker can infer `count = 0`. Annotate `cache: dict[str, list[float]] = {}`.
-- **Use `typing.Protocol`** for structural subtyping when the interface is small — preferred over ABCs for duck-typed APIs.
+- **Built-in generics on 3.9+**: `list[str]`, `dict[str, int]`, `tuple[int, ...]`; import from `typing` only on older versions.
+- **`X | None` on 3.10+** instead of `Optional[X]`; same for unions.
+- **Module-level `TypeAlias`** for complex repeated types so signatures stay readable.
+- **A quoted-string `TypeAlias` must be self-contained.** When quoting a forward reference to break a circular import, inline concrete types (`"str | os.PathLike[str] | Reader"`), never another module-level alias name. `typing.get_type_hints()` (used by dataclasses, Pydantic, attrs, and doc tooling) re-evaluates the string in the *importing* module's namespace, where that alias may not exist, raising `NameError` at runtime; formatter, linter, type checker, and tests all miss it.
+- **Annotate locals only when non-obvious**: `cache: dict[str, list[float]] = {}`, not `count = 0`.
+- **`typing.Protocol`** for small structural interfaces; preferred over ABCs for duck-typed APIs.
 
 ## 4. Docstrings (NumPy Style)
 
-Add NumPy-style docstrings to all public functions, classes, and modules. Skip docstrings for trivially obvious private helpers (e.g., a 2-line `_clamp`).
+NumPy-style docstrings on all public functions, classes, and modules; skip trivially obvious private helpers (e.g., a 2-line `_clamp`).
 
 ```python
 def calculate_metrics(
@@ -56,16 +48,13 @@ def calculate_metrics(
 ) -> dict[str, float]:
     """Calculate weighted summary statistics for a list of values.
 
-    Computes mean, standard deviation, and median. When weights are
-    provided, the mean and standard deviation are weighted accordingly.
-
     Parameters
     ----------
     values : list[float]
         Input values. Must be non-empty.
     weights : list[float] or None, optional
-        Weights corresponding to each value. Must be the same length
-        as `values` when provided. Defaults to equal weighting.
+        Per-value weights, same length as `values`. Defaults to equal
+        weighting.
 
     Returns
     -------
@@ -75,7 +64,7 @@ def calculate_metrics(
     Raises
     ------
     ValueError
-        If `values` is empty or if `weights` length does not match.
+        If `values` is empty or `weights` length does not match.
 
     Examples
     --------
@@ -86,69 +75,61 @@ def calculate_metrics(
 
 **Rules:**
 
-- One-line summary on the same line as the opening `"""`, ending with a period.
-- Blank line between summary and extended description.
-- Document parameters, returns, and raised exceptions. Add `Examples` when behavior is not obvious from the signature.
-- For classes, put the docstring under the class definition. Document `__init__` parameters there or in `__init__` — pick one and stay consistent within a project.
+- One-line summary on the same line as the opening `"""`, ending with a period; blank line between summary and any extended description.
+- Document parameters, returns, and raised exceptions; add `Examples` when behavior is not obvious from the signature.
+- Class docstring under the class definition; document `__init__` parameters there or in `__init__`; pick one, stay consistent within a project.
 
 ## 5. Design Principles
 
-Structural design — Single Responsibility, DRY (the same *fact* in two places, not lookalikes), the Rule of Three, YAGNI, KISS, composition over inheritance, and minimizing coupling — is owned by the `software-design` skill; apply it for those. What stays here is the Python-specific way to make an interface hard to misuse:
+Structural design is owned by `software-design`: Single Responsibility, DRY (the same *fact* in two places, not lookalikes), the Rule of Three, YAGNI, KISS, composition over inheritance, minimizing coupling. The Python-specific way to make an interface hard to misuse stays here:
 
-- **Keyword-only arguments (`*,`)**: When a function takes several parameters of the same type, make them keyword-only so callers cannot swap them by accident. Provide sensible defaults.
+- **Keyword-only arguments (`*,`)**: when a function takes several parameters of the same type, make them keyword-only so callers cannot swap them by accident. Provide sensible defaults.
 
 ## 6. Performance & Efficiency
 
-Optimize where it matters — hot loops, large data, and code in the critical path. Do not sacrifice readability for negligible gains, and do not optimize without measuring first.
+Optimize hot loops, large data, and the critical path; never at readability's expense for negligible gains, and never without measuring first.
 
-- **Short-circuit evaluation**: In conditions, place the cheap check first and the expensive check second so the expensive one is skipped when possible. `if user is not None and expensive_validation(user):` — the `is not None` check guards the call. Use `any()` and `all()`, which short-circuit, instead of loop-and-flag patterns.
-- **Cache pure functions called repeatedly with the same simple arguments** using `functools.lru_cache` or `functools.cache`. Caching only works when arguments are hashable (so simple types: `int`, `str`, `tuple`, `frozenset`) and the function is genuinely pure (same input → same output, no side effects). Do not cache functions that take large mutable objects, return generators, or depend on external state.
-- **Hoist invariants out of loops**: If a value does not change inside the loop, compute it once before the loop.
-- **Pick the right data structure**: `set` and `dict` give O(1) membership and lookup; `list` gives O(n). Use `collections.deque` for FIFO queues, `collections.defaultdict` to skip key-existence checks, `collections.Counter` for frequency counts, `bisect` for sorted-list operations.
-- **Prefer the standard library and built-ins**: `itertools`, `functools`, `collections`, `heapq`, and `bisect` replace many hand-rolled loops with faster, clearer alternatives. `str.join()` for string assembly, never `+=` in a loop.
-- **Generators for large or streaming data**: Use generator expressions or `yield` when the full sequence does not need to be materialized in memory.
-- **Vectorize numerical work with NumPy** when operating on arrays of numbers — element-wise Python loops over numerical data are the most common avoidable performance bug.
-- **Profile before optimizing**: For non-obvious hot paths, use `cProfile`, `timeit`, or `line_profiler`. Optimize the measured bottleneck, not the imagined one.
+- **Short-circuit**: cheap check before expensive, as in `if user is not None and expensive_validation(user):`. Use `any()`/`all()` (which short-circuit) over loop-and-flag.
+- **`functools.lru_cache`/`cache`** for genuinely pure functions repeatedly called with the same simple hashable arguments (`int`, `str`, `tuple`, `frozenset`). Not for large mutable arguments, generator returns, or external-state dependence.
+- **Hoist loop invariants**: compute once before the loop.
+- **Right data structure**: `set`/`dict` O(1) membership/lookup vs `list` O(n); `collections.deque` for FIFO queues, `defaultdict` to skip key checks, `Counter` for frequencies, `bisect` for sorted lists.
+- **Stdlib over hand-rolled loops**: `itertools`, `functools`, `collections`, `heapq`, `bisect`; `str.join()` for string assembly, never `+=` in a loop.
+- **Generators** for large or streaming data that need not be materialized.
+- **Vectorize numerical array work with NumPy**: element-wise Python loops over numbers are the most common avoidable performance bug.
+- **Profile before optimizing** non-obvious hot paths: `cProfile`, `timeit`, `line_profiler`; fix the measured bottleneck, not the imagined one.
 
 ## 7. Dependency Discipline
 
-- **Standard library first**: Python's standard library is large and capable. Reach for it before adding a third-party dependency. `pathlib`, `dataclasses`, `enum`, `itertools`, `functools`, `collections`, `concurrent.futures`, `argparse`, `json`, `csv`, `sqlite3`, `urllib`, `re`, `statistics`, `datetime` cover an enormous range of needs.
-- **Common scientific stack is fine**: `numpy`, `pandas`, `scipy`, `matplotlib`, `scikit-learn` are de-facto standards in data and scientific work — use them freely when the task fits.
-- **Justify niche dependencies**: A new third-party package introduces install burden, security surface, version compatibility risk, and possible abandonment. If it can be replaced by 20 lines of standard library code, do that instead.
-- **Pin behavior, not exact versions, in libraries**: Library code should accept a reasonable range; application code can pin tightly via lockfiles.
+- **Standard library first**: `pathlib`, `dataclasses`, `enum`, `itertools`, `functools`, `collections`, `concurrent.futures`, `argparse`, `json`, `csv`, `sqlite3`, `urllib`, `re`, `statistics`, `datetime` cover an enormous range of needs.
+- **Common scientific stack is fine**: `numpy`, `pandas`, `scipy`, `matplotlib`, `scikit-learn`; de-facto standards, use freely when the task fits.
+- **Justify niche dependencies** (install burden, security surface, version risk, abandonment); if 20 lines of stdlib replaces one, write the 20 lines.
+- **Pin behavior, not exact versions, in libraries**: libraries accept a reasonable range; applications pin tightly via lockfiles.
 
 ## 8. Readability & Comments
 
-Code is read far more often than it is written. Optimize for the reader.
+The shared clarity-and-comments doctrine (short single-purpose functions, early returns, named intermediates in place of explanatory comments; comments say *why* not *what*, no commented-out code, TODOs with owner and ticket) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
-- **Keep functions short and flat**. If you need a comment to separate "phases" inside a function, those phases are probably separate functions.
-- **Early returns** to flatten nested conditionals. Handle invalid inputs and edge cases up front, then proceed with the main logic at the base indent level.
-- **Comprehensions when they are simpler than a loop**. A 3-line comprehension with nested conditions is harder to read than the equivalent loop — use the loop.
-- **Name intermediate values**: If a single expression needs a comment to explain it, break it into named intermediate variables. The variable name becomes the comment.
-- **Comments only when necessary**: A comment explains *why*, not *what*. `# Retry with backoff because the upstream API rate-limits aggressively` is useful. `# Increment counter` is noise. Delete commented-out code — that is what version control is for.
-- **TODOs include context**: `# TODO(username): Remove after migration to v2 API (PROJ-1234)`. Orphan TODOs are clutter.
+- **Comprehensions only when simpler than the loop**: a 3-line comprehension with nested conditions loses to the loop.
 
 ## 9. Error Handling
 
 Handle what is likely, document what is possible, do not paper over bugs.
 
-- **Validate inputs at boundaries** — public functions check arguments; private helpers trust their callers.
-- **Raise specific exceptions with clear messages**: `raise ValueError(f"Expected positive integer, got {n}")`. Use `ValueError` for bad values, `TypeError` for wrong types, `FileNotFoundError` for missing files, custom exception subclasses for domain-specific errors.
-- **Narrow `except` clauses**: Catch the specific exception you expect. Never bare `except:`. Use `except Exception:` only as a last resort and always log or re-raise.
-- **Context managers** for resource lifecycle: `with open(...)`, `contextlib.suppress(FileNotFoundError)`, custom context managers for setup/teardown patterns. Never rely on `__del__` for cleanup.
-- **Fail fast**: If something is wrong, raise immediately. Do not let bad state propagate and surface as a confusing error three layers down.
-- **Do not over-engineer**: Cover plausible edge cases (empty input, `None`, off-by-one boundaries). Do not add defensive code for scenarios the function's contract rules out.
+- **Validate at boundaries**: public functions check arguments; private helpers trust their callers.
+- **Specific exceptions, clear messages**: `raise ValueError(f"Expected positive integer, got {n}")`. `ValueError` for bad values, `TypeError` for wrong types, `FileNotFoundError` for missing files, custom subclasses for domain errors.
+- **Narrow `except`**: catch the specific exception expected; never bare `except:`; `except Exception:` only as a last resort, always logged or re-raised.
+- **Context managers** for resource lifecycle: `with open(...)`, `contextlib.suppress(FileNotFoundError)`, custom ones for setup/teardown. Never rely on `__del__` for cleanup.
+- **Fail fast**: raise immediately; do not let bad state surface as a confusing error three layers down.
+- **Do not over-engineer**: cover plausible edge cases (empty input, `None`, off-by-one boundaries); no defensive code for scenarios the contract rules out.
 
 ## 10. Safety & Robustness
 
-Easy to overlook in review, critical in production.
-
-- **No mutable default arguments**: `def f(items=[])` is the classic Python footgun. Use `None` and initialize inside.
-- **Never trust external input**: Validate user input, file paths, and API responses. Use `pathlib` for path manipulation to avoid traversal bugs.
-- **No secrets in code**: API keys, passwords, and tokens belong in environment variables or a secret manager.
+- **No mutable default arguments**: `def f(items=[])` is the classic footgun; use `None`, initialize inside.
+- **Never trust external input**: validate user input, file paths, API responses; use `pathlib` for path manipulation to avoid traversal bugs.
+- **No secrets in code**: keys, passwords, tokens go in environment variables or a secret manager.
 - **Subprocess safety**: `subprocess.run(["cmd", arg])` with a list, never `shell=True` with unsanitized input.
-- **`logging` over `print` in library or application code**. `print` is fine for scripts and one-off debugging.
-- **Prefer immutability where it does not hurt**: tuples over lists, frozenset over set, `@dataclass(frozen=True)` for value objects. Reduces accidental mutation bugs.
+- **`logging` over `print`** in library or application code; `print` is fine for scripts and one-off debugging.
+- **Prefer immutability where it does not hurt**: tuples over lists, `frozenset` over `set`, `@dataclass(frozen=True)` for value objects.
 
 ---
 
@@ -173,7 +154,7 @@ def calc(data, t=0.5):
     return res
 ```
 
-Issues: combined imports, eager `tensorflow` import, generic names (`calc`, `data`, `t`, `d`, `res`), hand-rolled cache as global state, deeply nested conditions, no type hints, no docstring, redundant zero-check before the threshold check.
+Issues: combined imports with unused and eager-heavy ones (`tensorflow`); generic names (`calc`, `data`, `t`, `d`, `res`); global dict as hand-rolled cache; triple-nested conditions with a redundant zero-check; no type hints, no docstring.
 
 **After:**
 
@@ -204,7 +185,7 @@ def filter_and_transform_scores(
     Returns
     -------
     list[float]
-        Square roots of the values that passed the threshold, in input order.
+        Square roots of the passing values, in input order.
     """
     return [
         _sqrt_cached(record["value"])
@@ -213,18 +194,10 @@ def filter_and_transform_scores(
     ]
 ```
 
-Changes: split imports and dropped unused ones; gave names that say what the values are; replaced ad-hoc dict cache with `lru_cache`; collapsed three nested `if`s into one short-circuit predicate (positivity is implied by `> threshold` when threshold is non-negative — flag the assumption to the user if it might not hold); added type hints and a NumPy-style docstring; no comments needed because the names carry the meaning.
+The zero-check collapsed into `> threshold` because positivity is implied when the threshold is non-negative, an assumption to flag to the user if it might not hold.
 
 ---
 
 ## Delivering the Review
 
-**This applies in review mode** — when the task is to audit existing code, not when you are authoring new code (there, just write code that already meets the standard, with no separate review write-up). Structure the review response in this order:
-
-1. **One-line overall assessment** — quality and the single most important issue.
-2. **The improved code as a complete, runnable replacement** — never make the user stitch fragments together.
-3. **A brief summary of the non-obvious changes**, grouped by category (style, naming, types, structure, performance, safety). Skip trivia like "renamed `d` to `record`" — the diff speaks for itself. Call out anything that changes behavior, and any assumption made on the user's behalf (like the positivity assumption above) so they can confirm or correct it.
-
-If the code is mostly fine, say so plainly. Not every review needs a rewrite. If the user requested a narrow change ("just add type hints"), focus on that — but flag any glaring issue in passing.
-
-When the code clearly belongs to a larger codebase, ask about Python version, project conventions, and existing patterns before proposing changes that might conflict with the rest of the project.
+**Review mode only**: the response structure (brief assessment; the improved code as a complete, runnable replacement; key changes by category) and the mostly-fine and narrow-request provisions are defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md). Flag any assumption made on the user's behalf, like the positivity assumption above, so they can confirm or correct it. For code in a larger codebase, the specifics to ask about first are the Python version, project conventions, and existing patterns.

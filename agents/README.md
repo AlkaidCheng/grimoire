@@ -1,6 +1,6 @@
 # Agents
 
-Agent definitions — the role, tools, and behavior that shape an autonomous or semi-autonomous assistant.
+Agent definitions: the role, tools, and behavior that shape an autonomous or semi-autonomous assistant.
 
 ## What belongs here
 

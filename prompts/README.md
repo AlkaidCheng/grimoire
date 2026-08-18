@@ -4,7 +4,7 @@ Standalone prompts and prompt templates ready to copy into your own setup.
 
 ## What belongs here
 
-Single-purpose prompts — system prompts, task prompts, or reusable templates with placeholders to fill in.
+Single-purpose prompts: system prompts, task prompts, or reusable templates with placeholders to fill in.
 
 ## Shape
 

@@ -39,9 +39,9 @@ editor. Editor webviews commonly block them. Removed lines carry no link because
 line is absent from the new side of the diff.
 
 When ``output`` is omitted, the page is written beside REVIEW.json with the same
-basename. Place the config in the active coding agent's directory -- for example,
-``.codex/diffs/`` for Codex or ``.claude/diffs/`` for Claude Code -- so the generated
-page and folder index remain owned by the agent that created them.
+basename. Place the config in the directory of whichever coding agent is active
+(for example ``.codex/diffs/`` or ``.claude/diffs/``), so the generated page and
+folder index remain owned by the agent that created them.
 
 Keep each REVIEW.json next to the page it produces, named to match its output
 (``pr<NNN>_<slug>.json`` -> ``pr<NNN>_<slug>.html``), so a page's input always sits
@@ -177,7 +177,7 @@ td.n{width:1%;min-width:44px;text-align:right;color:var(--num);
  -webkit-user-select:none;-moz-user-select:none;user-select:none;
  border-right:1px solid var(--bd);background:var(--card)}
 /* Render the line number as generated content so it is never part of the
-   selectable/copyable text layer -- selecting a code block and copying yields
+   selectable/copyable text layer: selecting a code block and copying yields
    clean code (no line numbers), in every browser, not just those that honor
    user-select:none for the clipboard. */
 td.n::before{content:attr(data-n)}
@@ -267,7 +267,7 @@ def _head(title: str) -> str:
     return (
         "<!doctype html><html lang='en' data-theme='auto'><head><meta charset='utf-8'>\n"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>\n"
-        f"<title>Annotated diff &mdash; {html.escape(title)}</title>\n"
+        f"<title>Annotated diff: {html.escape(title)}</title>\n"
         "<script>(function(){try{document.documentElement.dataset.theme="
         f"localStorage.getItem('{_THEME_KEY}')||'auto';}}catch(e){{"
         "document.documentElement.dataset.theme='auto';}})();</script>\n"
@@ -324,15 +324,15 @@ def parse(diff_text: str) -> list[DiffFile]:
     return files
 
 
-# GitHub-style intra-line highlighting. Within a "replace" block -- a run of removed
-# lines immediately followed by a run of added lines -- each removed line is paired with
+# GitHub-style intra-line highlighting. Within a "replace" block (a run of removed
+# lines immediately followed by a run of added lines), each removed line is paired with
 # the added line at the same offset and a character-level diff marks the exact spans that
 # changed. Lines too dissimilar to share a meaningful edit keep only their whole-line
 # highlight (a scattered character diff there is noise, not signal).
 _INLINE_MIN_RATIO = 0.25
 # Bridge an unchanged run shorter than this between two changed spans into a single span,
 # so a one- or two-character island (a shared ``_``, ``->``, ``= ``) does not fragment
-# ``value`` -> ``result`` into a confetti of tiny highlights -- matching how GitHub
+# ``value`` -> ``result`` into a confetti of tiny highlights. This matches how GitHub
 # coalesces near-adjacent edits.
 _INLINE_MERGE_GAP = 3
 
@@ -367,8 +367,8 @@ def _merge_opcodes(opcodes: list[Opcode]) -> list[Opcode]:
 def _inline_pair(rem: str, add: str) -> tuple[str, str] | None:
     """Character-level highlight for one removed / added line pair.
 
-    Returns ``(rem_html, add_html)`` -- the escaped code cells with each changed span
-    wrapped in ``<span class='w'>`` -- or ``None`` when the two lines are too dissimilar
+    Returns ``(rem_html, add_html)`` (the escaped code cells with each changed span
+    wrapped in ``<span class='w'>``) or ``None`` when the two lines are too dissimilar
     for an inline highlight to help (the whole-line highlight already carries it).
     """
     matcher = difflib.SequenceMatcher(a=rem, b=add, autojunk=False)
@@ -530,7 +530,7 @@ def build_index(out_dir: str) -> int:
             text = fh.read()
         title_match = re.search(r"<title>(.*?)</title>", text, re.S)
         title = title_match.group(1) if title_match else name
-        title = re.sub(r"^Annotated diff\s*(?:&mdash;|—)\s*", "", title).strip()
+        title = re.sub(r"^Annotated diff\s*(?:&mdash;|\u2014|:)\s*", "", title).strip()
         entries.append((int(match.group(2)), match.group(1), name, title))
     entries.sort(key=lambda e: (e[0], e[2]))
 
