@@ -18,6 +18,7 @@ The "make it look like a human wrote it on the first try" pass. Iteration leaves
 6. Naming consistency across an API surface
 7. API renames for coherence
 8. Personal / sensitive / device information in committed files
+9. Docstring minimalism (user-facing reference content only)
 
 **This skill does NOT cover** (language-specific — hand off):
 - Formatting (Black, clang-format, PEP 8): → `python-code-review` / `cpp-code-review`
@@ -83,6 +84,22 @@ The tell-tale shapes:
 - TODOs referencing earlier turns: `# TODO: as you said, switch this to ...`
 - Apologetic or stylistic noise: `# Note: this works`, `# Yes, this is intentional`, `# Sorry about the magic number here`
 - Editorial / marketing flourishes and reader asides that don't describe the code: "the lever that turns X into Y", "the row that matters", "this is the clever bit", "fall back rather than guess", "you'll notice". State the mechanism plainly instead — "uses copy_file_range, which reflink filesystems complete near-metadata-only", "falls back to the materializing write".
+- **Counterfactual design justification**: a docstring or comment arguing what would go wrong without the code — "an empty mapping would construct a client that can never serve a request", "a stale registration would block the name for good", "which is what the registry exists to prevent". State the contract ("a mapping must hold at least one entry") and stop; the argument belongs in the commit or PR that introduced the rule.
+- **Correction-of-the-past constructions**: text defined by negating a removed behavior — "not a separate final tier", "no longer wraps the payload", "instead of always the first column", "X, not Y". State the current behavior positively ("matches by longest prefix, like any other rule"); the contrast belongs in the change artifacts.
+- **"X rather than Y, because…" implementation apologies** on a private helper — "searched rather than derived, because a wildcard cannot be recovered". The first clause without the apology is the whole contract.
+
+**Treat removed code as if it never existed.** Once an API, path, or default is removed, nothing in the *source, docstrings, or tests* may be organized around its absence:
+
+- **History-defensive tests** are artifacts: a test asserting `not hasattr(obj, 'removed_method')`, a `pytest.raises(TypeError)` on a deleted constructor option, an `assert 'old_key' not in CONFIG`, or a parametrization sweeping formerly-reserved names to prove they are "ordinary now". Delete them — a fresh author would never write them, and they pin nothing a user relies on. (A test of a *replacement behavior* is fine; a test of an *absence* is not.)
+- Tests named or docstringed by the transition ("TestLegacyOptionRemoved", "moved from config to settings") get present-tense identities describing the current contract.
+- The removal narrative lives in exactly three places: the commit message, the changelog entry, and the PR/MR description — the artifacts whose job is describing the delta. Everywhere else, write as if the current design is the only one that ever existed.
+
+Detection additions:
+```bash
+rg -n "would (construct|break|crash|refuse|silently)|exists to prevent|rather than .*because" -tsrc
+rg -n "not a |no longer|instead of (always|the old)|replacing the" -tsrc   # then apply the meaning test
+rg -n "hasattr.*not|not hasattr|Removed\b|_is_gone|is_removed" tests/
+```
 
 Detection:
 ```bash
@@ -133,6 +150,8 @@ git diff <merge-base> -- README.md  # see what was/wasn't updated
 ```
 
 **Structural reorganization (distinct from stale-content fixing).** A document can be accurate yet disorganized — a flat run of sections, no navigation, usage interleaved with internals. Reorganizing is reorder + group + add a table of contents, and it must be **content-preserving**: diff each section body against the original to prove no silent loss. Two hazards: (a) renaming or re-leveling a heading changes its anchor — compute the new anchor (for a GitHub-rendered doc: lowercase, drop characters outside `[\w\s-]`, spaces→hyphens, `&`→`--`) and grep the repo for inbound `#anchor` links before renaming; (b) for a long document, a grouped table of contents is navigation, not decoration.
+
+**Changelog entries are one user-facing sentence.** A changelog bullet names the changed surface and its user-visible effect — nothing else. Mechanism enumerations, per-site lists, colon-plus-three-clauses constructions, and em-dash justification chains are PR-description material that leaked; trim them at write time, because they otherwise accumulate until a batch cleanup is needed. If the bullet needs a colon and a list, the list belongs in the PR.
 
 ### Category 4: Dead code
 
@@ -190,6 +209,16 @@ Often falls out of category 6 — once you've spotted the inconsistency, the ren
 A committed file — source, **test**, config, docstring, comment, or doc — ships to everyone who clones the repo, so none of it should carry the developer's personal or device details: real names, usernames, emails, host paths, hostnames, IPs, machine/hardware specs, or secrets. Replace with neutral placeholders. The nuance to hold onto: scrub hardware *identity* (CPU model, hostname, home-directory paths) but keep a measurement *parameter* a stated claim depends on — a thread/core count that makes "6× slower" interpretable. The full rule, with the identity-vs-parameter test and the maintainer-attribution exception, is in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md).
 
 This is read-and-judgment work, not a fixed pattern — scan paths, fixtures, and prose for anything that identifies the author or their machine. It is removal-only and behavior-neutral, so it rides in the same first commit as the other artifact removals (Category 1/2).
+
+### Category 9: Docstring minimalism
+
+Three standards, applied to every docstring (public and private):
+
+1. **Document what a user of the API needs**: what the thing does, its parameters/returns/raises, essential usage constraints. Cut anything only useful to someone editing the implementation.
+2. **Implementation details do not surface** — with one exception: a *non-trivial* detail a user must know to use the API correctly stays ("the returned object is a copy", "the values are cast to float and processed in sorted order", "a None key is refused"). Internal mechanics — which helper does the work, merge orders, resolution walk-throughs, why an internal branch exists — go.
+3. **Reference prose only** (Category 1 applied to docstrings): no design arguments, no essays narrating intent, no reader-directed asides, no provenance ("owner ruling", review/issue references), third person throughout.
+
+Calibration: a one-sentence docstring is ideal, not underdone — do not pad it. A 30-line docstring on a private helper is almost always an essay wearing a docstring's clothes; compress it to its behavioral facts and keep every fact. Framework/base-class docstrings legitimately carry more contract detail than leaf-class ones when the contract *is* the user-facing API (an override hook's obligations, a resolution grammar users write keys against). Where a project builds API docs from docstrings (Sphinx autodoc and kin), run that build as the formatting gate for this category, and verify the edit was docstring-only with a docstring-stripped AST comparison rather than by eyeballing the diff.
 
 ## Commit message style for polishing
 
