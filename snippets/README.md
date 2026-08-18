@@ -1,6 +1,6 @@
 # Snippets
 
-Small reusable fragments — the building blocks you drop into larger prompts or agents.
+Small reusable fragments: the building blocks you drop into larger prompts or agents.
 
 ## What belongs here
 

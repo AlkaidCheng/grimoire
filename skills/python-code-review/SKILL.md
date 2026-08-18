@@ -1,11 +1,11 @@
 ---
 name: python-code-review
-description: The coding standard for Python — style, naming, type hints, NumPy docstrings, performance, and safety — to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
+description: The coding standard for Python (style, naming, type hints, NumPy docstrings, performance, and safety) to follow while writing Python and to apply when reviewing it. Use when writing, implementing, or refactoring Python, or when asked to review, lint, audit, improve, or critique it ("add type hints", "add docstrings", "make this more Pythonic", "remove redundancy", "check my code"; PEP 8, Black). If Python is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for C++ use cpp-code-review.
 ---
 
 # Python Code Review & Improvement
 
-The coding standard for Python: how it is written and how it is reviewed. The language-agnostic conduct — the change ethos (every change needs a reason; never change code just to change it) and the two working modes, **authoring** (apply the standard as you write; the default when implementing or modifying Python) and **reviewing** (audit against it and return an improved version per "Delivering the Review") — is defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md) and applies here in full.
+The coding standard for Python: how it is written and how it is reviewed. The language-agnostic conduct is defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md) and applies here in full: the change ethos (every change needs a reason; never change code just to change it) and the two working modes, **authoring** (apply the standard as you write; the default when implementing or modifying Python) and **reviewing** (audit against it and return an improved version per "Delivering the Review").
 
 Work the criteria in order: style and naming first, then types and docstrings, then structure, performance, and safety.
 
@@ -13,14 +13,14 @@ Work the criteria in order: style and naming first, then types and docstrings, t
 
 Format with **Black** defaults (88-character lines); **PEP 8** for everything Black does not auto-fix.
 
-- **Imports**: three groups separated by a blank line — standard library, third-party, local — each alphabetized. Remove unused imports. Never `from module import *`.
+- **Imports**: three groups separated by a blank line (standard library, third-party, local), each alphabetized. Remove unused imports. Never `from module import *`.
 - **Import only what is necessary**: `from math import sqrt, pi` over `import math` when few names are used; reverse when many names are used or the module prefix aids readability.
-- **Defer heavy or optional imports** (`tensorflow`, `torch`, `matplotlib.pyplot`, `pandas`, or path-specific deps) into the function that uses them — keeps startup fast, avoids forcing unused installs.
+- **Defer heavy or optional imports** (`tensorflow`, `torch`, `matplotlib.pyplot`, `pandas`, or path-specific deps) into the function that uses them: keeps startup fast, avoids forcing unused installs.
 - **Whitespace**: two blank lines before top-level definitions, one between methods; no trailing whitespace, no spaces inside brackets.
 
 ## 2. Naming
 
-The language-agnostic naming doctrine — names as the primary documentation, specific over generic, verb-led functions, booleans as questions, domain vocabulary — is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
+The language-agnostic naming doctrine (names as the primary documentation, specific over generic, verb-led functions, booleans as questions, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
 - **Standard casing**: `snake_case` functions/methods/variables/modules; `PascalCase` classes; `UPPER_SNAKE_CASE` module constants; leading `_` signals internal. Never `l`, `O`, or `I` as single-letter names.
 - **Python-flavored generics count as generic**: `arr`, `df`, `lst` are no better than `data` or `tmp` as substantive names.
@@ -28,14 +28,14 @@ The language-agnostic naming doctrine — names as the primary documentation, sp
 
 ## 3. Type Hints
 
-Annotate every function signature (parameters and return) — documentation plus static analysis.
+Annotate every function signature (parameters and return): documentation plus static analysis.
 
 - **Built-in generics on 3.9+**: `list[str]`, `dict[str, int]`, `tuple[int, ...]`; import from `typing` only on older versions.
 - **`X | None` on 3.10+** instead of `Optional[X]`; same for unions.
 - **Module-level `TypeAlias`** for complex repeated types so signatures stay readable.
-- **A quoted-string `TypeAlias` must be self-contained.** When quoting a forward reference to break a circular import, inline concrete types (`"str | os.PathLike[str] | Reader"`), never another module-level alias name. `typing.get_type_hints()` — used by dataclasses, Pydantic, attrs, and doc tooling — re-evaluates the string in the *importing* module's namespace, where that alias may not exist, raising `NameError` at runtime; formatter, linter, type checker, and tests all miss it.
+- **A quoted-string `TypeAlias` must be self-contained.** When quoting a forward reference to break a circular import, inline concrete types (`"str | os.PathLike[str] | Reader"`), never another module-level alias name. `typing.get_type_hints()` (used by dataclasses, Pydantic, attrs, and doc tooling) re-evaluates the string in the *importing* module's namespace, where that alias may not exist, raising `NameError` at runtime; formatter, linter, type checker, and tests all miss it.
 - **Annotate locals only when non-obvious**: `cache: dict[str, list[float]] = {}`, not `count = 0`.
-- **`typing.Protocol`** for small structural interfaces — preferred over ABCs for duck-typed APIs.
+- **`typing.Protocol`** for small structural interfaces; preferred over ABCs for duck-typed APIs.
 
 ## 4. Docstrings (NumPy Style)
 
@@ -77,39 +77,39 @@ def calculate_metrics(
 
 - One-line summary on the same line as the opening `"""`, ending with a period; blank line between summary and any extended description.
 - Document parameters, returns, and raised exceptions; add `Examples` when behavior is not obvious from the signature.
-- Class docstring under the class definition; document `__init__` parameters there or in `__init__` — pick one, stay consistent within a project.
+- Class docstring under the class definition; document `__init__` parameters there or in `__init__`; pick one, stay consistent within a project.
 
 ## 5. Design Principles
 
-Structural design — Single Responsibility, DRY (the same *fact* in two places, not lookalikes), the Rule of Three, YAGNI, KISS, composition over inheritance, minimizing coupling — is owned by `software-design`. The Python-specific way to make an interface hard to misuse stays here:
+Structural design is owned by `software-design`: Single Responsibility, DRY (the same *fact* in two places, not lookalikes), the Rule of Three, YAGNI, KISS, composition over inheritance, minimizing coupling. The Python-specific way to make an interface hard to misuse stays here:
 
 - **Keyword-only arguments (`*,`)**: when a function takes several parameters of the same type, make them keyword-only so callers cannot swap them by accident. Provide sensible defaults.
 
 ## 6. Performance & Efficiency
 
-Optimize hot loops, large data, and the critical path — never at readability's expense for negligible gains, and never without measuring first.
+Optimize hot loops, large data, and the critical path; never at readability's expense for negligible gains, and never without measuring first.
 
-- **Short-circuit**: cheap check before expensive — `if user is not None and expensive_validation(user):`. Use `any()`/`all()` (which short-circuit) over loop-and-flag.
+- **Short-circuit**: cheap check before expensive, as in `if user is not None and expensive_validation(user):`. Use `any()`/`all()` (which short-circuit) over loop-and-flag.
 - **`functools.lru_cache`/`cache`** for genuinely pure functions repeatedly called with the same simple hashable arguments (`int`, `str`, `tuple`, `frozenset`). Not for large mutable arguments, generator returns, or external-state dependence.
 - **Hoist loop invariants**: compute once before the loop.
 - **Right data structure**: `set`/`dict` O(1) membership/lookup vs `list` O(n); `collections.deque` for FIFO queues, `defaultdict` to skip key checks, `Counter` for frequencies, `bisect` for sorted lists.
 - **Stdlib over hand-rolled loops**: `itertools`, `functools`, `collections`, `heapq`, `bisect`; `str.join()` for string assembly, never `+=` in a loop.
 - **Generators** for large or streaming data that need not be materialized.
-- **Vectorize numerical array work with NumPy** — element-wise Python loops over numbers are the most common avoidable performance bug.
+- **Vectorize numerical array work with NumPy**: element-wise Python loops over numbers are the most common avoidable performance bug.
 - **Profile before optimizing** non-obvious hot paths: `cProfile`, `timeit`, `line_profiler`; fix the measured bottleneck, not the imagined one.
 
 ## 7. Dependency Discipline
 
 - **Standard library first**: `pathlib`, `dataclasses`, `enum`, `itertools`, `functools`, `collections`, `concurrent.futures`, `argparse`, `json`, `csv`, `sqlite3`, `urllib`, `re`, `statistics`, `datetime` cover an enormous range of needs.
-- **Common scientific stack is fine**: `numpy`, `pandas`, `scipy`, `matplotlib`, `scikit-learn` — de-facto standards, use freely when the task fits.
+- **Common scientific stack is fine**: `numpy`, `pandas`, `scipy`, `matplotlib`, `scikit-learn`; de-facto standards, use freely when the task fits.
 - **Justify niche dependencies** (install burden, security surface, version risk, abandonment); if 20 lines of stdlib replaces one, write the 20 lines.
 - **Pin behavior, not exact versions, in libraries**: libraries accept a reasonable range; applications pin tightly via lockfiles.
 
 ## 8. Readability & Comments
 
-The shared clarity-and-comments doctrine — short single-purpose functions, early returns, named intermediates in place of explanatory comments; comments say *why* not *what*, no commented-out code, TODOs with owner and ticket — is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
+The shared clarity-and-comments doctrine (short single-purpose functions, early returns, named intermediates in place of explanatory comments; comments say *why* not *what*, no commented-out code, TODOs with owner and ticket) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
-- **Comprehensions only when simpler than the loop** — a 3-line comprehension with nested conditions loses to the loop.
+- **Comprehensions only when simpler than the loop**: a 3-line comprehension with nested conditions loses to the loop.
 
 ## 9. Error Handling
 
@@ -124,7 +124,7 @@ Handle what is likely, document what is possible, do not paper over bugs.
 
 ## 10. Safety & Robustness
 
-- **No mutable default arguments**: `def f(items=[])` is the classic footgun — use `None`, initialize inside.
+- **No mutable default arguments**: `def f(items=[])` is the classic footgun; use `None`, initialize inside.
 - **Never trust external input**: validate user input, file paths, API responses; use `pathlib` for path manipulation to avoid traversal bugs.
 - **No secrets in code**: keys, passwords, tokens go in environment variables or a secret manager.
 - **Subprocess safety**: `subprocess.run(["cmd", arg])` with a list, never `shell=True` with unsanitized input.
@@ -194,10 +194,10 @@ def filter_and_transform_scores(
     ]
 ```
 
-The zero-check collapsed into `> threshold` because positivity is implied when the threshold is non-negative — an assumption to flag to the user if it might not hold.
+The zero-check collapsed into `> threshold` because positivity is implied when the threshold is non-negative, an assumption to flag to the user if it might not hold.
 
 ---
 
 ## Delivering the Review
 
-**Review mode only** — the response structure (brief assessment; the improved code as a complete, runnable replacement; key changes by category) and the mostly-fine and narrow-request provisions are defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md). Flag any assumption made on the user's behalf — like the positivity assumption above — so they can confirm or correct it. For code in a larger codebase, the specifics to ask about first are the Python version, project conventions, and existing patterns.
+**Review mode only**: the response structure (brief assessment; the improved code as a complete, runnable replacement; key changes by category) and the mostly-fine and narrow-request provisions are defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md). Flag any assumption made on the user's behalf, like the positivity assumption above, so they can confirm or correct it. For code in a larger codebase, the specifics to ask about first are the Python version, project conventions, and existing patterns.
