@@ -154,64 +154,50 @@ Things to drop:
 - Anything the diff or the PR description already says
 - **Any AI/assistant co-author trailer**: no `Co-Authored-By: <assistant>` line; attribute the commit to the human author only (the trailer form of the "no assistant references" rule in [`../_shared/human-facing-artifacts.md`](../_shared/human-facing-artifacts.md)).
 
-## PR description style
+## PR/MR description style
 
-The PR description is a **public, durable account of the change** for three audiences:
+A PR/MR description is a public, durable account of the change. It must be useful to people who use the code, people who maintain it, and people who review the change. Write for the least familiar relevant reader: begin with plain-language behavior and impact, then add technical detail where it improves understanding.
 
-1. **Users** need to understand changed behavior, compatibility, and migration.
-2. **Developers** need to understand where the behavior belongs and any lasting implementation constraint.
-3. **Reviewers** need to understand motivation, risk, and the evidence supporting the change.
+A strong description is:
 
-Include a detail when it materially serves at least one audience, remains understandable and appropriate for the others, and is not a line-by-line narration of the diff. The description must stand on its own without requiring the conversation or source changes.
+- **Clear:** the opening says what changed and why it matters. Use concrete behavior instead of implementation shorthand.
+- **Concise:** each paragraph or bullet answers one question. Remove repeated claims, diff narration, routine status, and background that does not affect use or review.
+- **Complete:** cover every material behavior, compatibility concern, migration, risk, and validation gap, not only the headline change.
+- **Accurate:** verify claims about affected callers, inheritance, compatibility, performance, and test coverage. State uncertainty instead of guessing.
+- **Proportionate:** a small change may need three short sections; a breaking or high-risk change may need examples, migration guidance, evidence, and rollback details.
 
-**Write for all three audiences.** For a feature or behavior change, present information in this order:
+### Adapt the content to the change
 
-1. **Changed behavior:** open with what a caller must write or what they will observe, using a concrete before/after when possible. For example, prefer "`service.*` still matches `service.live`, but no longer `service.us.live`; write `service.*.*` for that" over "wildcards are bounded to one component."
-2. **Compatibility and blast radius:** state whether existing calls, configuration, data, or output change. For a breaking change, name what stops working, whether it fails loudly or silently, and the replacement. Verify and report the in-repository impact, including important consumers that remain compatible.
-3. **Decision-relevant evidence:** lead with the evidence that changes the merge decision. If an adversarial input hangs for more than 15 seconds and ordinary cases become 2x faster, lead with the hang; the routine speedup is supporting evidence.
-4. **Ownership and reach:** name the module or object that owns the behavior and the verified callers, inheritors, or surfaces that receive it. Do not frame a container or shared-library change only through the first feature where it appears.
-5. **Mechanism:** include implementation details only when they explain the cause, guarantee, migration, risk, or tradeoff. Put them after the consequence.
+| Change type | Lead with | Add when it improves understanding |
+|---|---|---|
+| Feature | The new capability and who it is for | A minimal usage example or demo, limits, configuration, and interaction with existing behavior |
+| Behavior or API change | A concrete before/after and the affected surface | Compatibility, migration, deprecation or breakage, failure mode, and verified downstream impact |
+| Bug fix | The symptom, trigger, and user impact | A minimal reproducer, actual versus expected result, non-obvious root cause, and regression coverage |
+| Performance | The affected workload and practical consequence | Baseline and new result, workload size, units, method, worst-case behavior, and resource tradeoffs |
+| Refactor or internal maintenance | The developer or operational outcome and the behavior preserved | Scope boundaries, risk, ownership changes, and lasting architectural constraints |
+| Dependency or packaging | What changes for installation, supported environments, or distributed artifacts | Version constraints, compatibility, security rationale, generated files, and rollback |
+| Documentation, build, or CI | The workflow or audience affected | Exact commands or configuration when useful, compatibility, rollout, and generated output |
 
-For maintenance work with no user-visible workflow, lead with the repository or operator outcome instead of inventing a demo. Verify claims about consumers and impact with the codebase or runtime; do not infer reach from names alone.
+For a mixed change, combine the relevant guidance and lead with its primary outcome. Do not invent a user demo for an internal change or force a root-cause section onto a feature. Let the nature and risk of the change determine the evidence and illustration.
 
-Use plain words that carry their own meaning. Prefer "dotted keys," "levels," "lookup," and "matches" to a dense chain of internal nouns; reserve API vocabulary for the literal API surface, and define an unavoidable term once. State facts without metaphors, editorial flourish, or arguments for why the design is virtuous. Design debate and rejected alternatives belong in review discussion unless they expose a lasting constraint or risk.
+### Use only useful sections
 
-The body must stand alone without the conversation or an internal plan: remove status-report and decomposition language ("this slice", "the next gate", "the accepted plan", numbered phases with no public meaning) and translate legitimate scope into product terms: what this PR makes available and what remains unsupported. Before publishing, read the rendered body as a new reviewer; if the opening describes how the work was organized rather than why the change matters, rewrite it.
+Match the repository's PR/MR template when one exists. Otherwise choose from these sections and omit any that would be empty or repetitive:
 
-Keep the body concise without narrowing it to the headline feature: account for every material part of the diff (independent behavior, packaging, documentation, migration, repository-policy changes) without a line-by-line restatement. Compare the body's sections with the changed-file list and diff summary; every material change needs a reviewer-facing explanation or an intentional reason to omit it.
+- `## Summary`: a short, stand-alone account of the change and why it matters.
+- `## Motivation`: the need, symptom, limitation, or measured problem that prompted the change.
+- `## Impact / Compatibility`: affected users and callers, preserved behavior, breaking changes, migration, and whether failure is loud or silent.
+- `## Changes`: one material behavior, contract, or operational fact per bullet. Mention implementation only when it explains a guarantee, constraint, or risk. Keep testing out of this section.
+- `## Example / Demo`: the shortest realistic input, API call, command, output, screenshot, or before/after comparison that makes observable behavior easier to understand.
+- `## Reproducer`: for a bug that can be reproduced, the exact minimal input or command plus actual and expected results. If the fix is already committed, obtain the before result from the base revision, preferably in a worktree, rather than reconstructing it from memory. If reproduction is impractical, describe the trigger and limitation precisely.
+- `## Performance`: the workload, scale, baseline, new result, units, and measurement method. Separate typical behavior from a material worst case and name relevant resource tradeoffs.
+- `## Testing`: material evidence such as regression coverage, compatibility checks, visual verification, or an important validation gap. Do not list routine lint, formatting, type checking, or CI success when host checks already show it.
+- `## Risk / Rollout`: concrete residual risk, deployment or migration order, monitoring, rollback, or known limitation.
+- `## Related Issues`: issue links, dependent changes, and follow-up work with public meaning.
 
-Never include credentials or secrets. Non-secret internal operational notes, private repository/history details, release-environment setup, and conversation-only instructions go in the maintainer handoff outside the PR.
+Keep one coherent story from motivation to behavior to evidence. A compact change may need only `## Summary`, `## Changes`, and `## Testing`; do not force extra headings. Use a table when several symptoms, cases, or compatibility outcomes need an exact mapping. Use code, screenshots, diagrams, or benchmark tables only when they communicate the change more clearly than a short paragraph.
 
-**Follow a modern GitHub PR template: `##` section headers, filled only where they apply**; a reviewer should jump straight to the relevant material. Candidates (drop any with nothing substantive to say):
-
-- `## Summary`: the changed behavior and headline consequence first; include a compact before/after or migration spelling when it makes the change concrete.
-- `## Motivation`: why the change exists (the bug, failing CI, regression, or feature need); state the symptom concretely (quote the error or measured regression).
-- `## Reproducer` *(for fixes)*: a **minimal, runnable** snippet or command that triggers the bug, with its actual (wrong) output, so a reviewer can see the failure themselves: fewest lines that still fail, exact command to run. When the fix is already committed, capture the *before* output by running the reproducer against the pre-fix revision in a `git worktree` at the base ref (a bare `git stash` is a no-op once the change is committed; editing files back is error-prone), never reconstructed from memory. Skip only when the bug genuinely can't be reduced to a runnable case (a race, hardware-specific fault); then describe the trigger precisely.
-- `## Expected behavior` *(for fixes)*: an explicit actual-versus-expected statement (the reproducer's output before vs. after). State it even when it seems obvious: "obvious" is exactly what the code got wrong. For a regression, name the last version/commit where the expected behavior held, if known.
-- `## Changes`: the high-level *what*, as a short list or sub-headed blocks for independent pieces. Write one material behavior, contract, or operational fact per bullet. Mention implementation only when it changes a guarantee; keep test coverage in `## Testing`. Don't restate the diff line by line.
-- `## Root cause` *(for fixes)*: the actual mechanism, not "there was a bug". Trace from the reproducer's trigger to the wrong output, citing the specific line/function (and a doc or spec when the behavior is surprising). The section the commit message deliberately omits.
-- `## Testing`: only material evidence (regression coverage for the reported failure, non-obvious platform/compatibility validation, meaningful benchmarks, or an important validation gap). Never list routine unit tests, linting, formatting, type checking, packaging, or CI success merely to say they passed; status checks carry that. For a fix, say a regression test now covers the reproducer and, ideally, fails on the pre-fix revision.
-- `## Demo / Example`: for a *feature* or observable behavior change; a before/after snippet, benchmark table, screenshot. A bug's before/after belongs in `## Reproducer` + `## Expected behavior`. Skip when there's nothing to show.
-- `## Related Issues`: `Fixes #123`, `Refs #456`, stack links, follow-up PRs. Skip if none.
-
-**For a fix, tell one story from symptom to expected behavior to cause to proof.** Use separate `## Reproducer`, `## Expected behavior`, `## Root cause`, and `## Testing` sections when each adds non-redundant decision value. A compact fix may carry the same story in `## Summary`, `## Changes`, and `## Testing`; never force headings that repeat the same fact.
-
-Match the project's own template when one exists in `.github/` (check `PULL_REQUEST_TEMPLATE.md`, prefer its headers). `## Breaking changes`, `## Migration`, `## Performance`, `## Risk / rollback` belong only when they convey a concrete reviewer-facing decision. Never add `## Release setup` solely to carry maintainer instructions; keep those in the private handoff.
-
-**Use tables for multi-failure or multi-symptom cases.** Map each fix to its symptom:
-
-| Failure | Why it now passes |
-|---|---|
-| `test_locked_resource_blocks_writer` | Lock now at offset 2^62; reader doesn't see it. |
-| 8x `os.replace` PermissionError | `lock_fd` closed before rename. |
-
-**Be specific, not generic.** Compare:
-
-> Bad: "Fixed Windows compatibility issues with file locking."
->
-> Good: "msvcrt.locking on byte 0 blocks reads of byte 0 from any other handle, including a fresh open in the same process; that broke every reader path while a writer was active. Moved the lock to offset 1<<62; nothing reads at that offset, so the contract holds."
-
-**Make the description stand alone without narrating the diff.** Do not assume every reader will inspect the source changes. Summarize behavior and impact, then add what the code alone cannot show: blast radius, decision-relevant evidence, and any non-obvious cause, guarantee, tradeoff, or risk.
+Make the description stand alone without narrating the diff. Do not assume every reader will inspect the source changes. Avoid dense internal vocabulary, editorial flourish, design advocacy, and rejected alternatives unless they expose a lasting constraint or material tradeoff. Keep private operations, conversation context, credentials, and maintainer-only setup outside the PR/MR.
 
 ## Changelog entry style
 
@@ -256,16 +242,15 @@ The four-file Windows lock-offset fix on the coding-agent surface: edit the four
 - [ ] **Committed docstrings and comments read as professional reference prose**: what the code is and does; no conversational artifacts, edit-history narration, or toolchain/assistant/conversation references
 - [ ] **No personal/sensitive/device info**: no real names, usernames, emails, home/device paths, hostnames, IPs, machine/hardware specs, or secrets in any committed file (tests, configs, docstrings/comments included), commit message, branch, or PR text; neutral placeholders used (maintainer-approved attribution excepted)
 - [ ] **PR body serves all three audiences**: users can find behavior and migration, developers can find ownership and lasting constraints, and reviewers can find motivation, risk, and evidence; none needs the conversation or a line-by-line reading of the diff
-- [ ] **Behavior-changing PR body starts with a concrete consequence**: changed usage or observable before/after comes before mechanism; required migration is immediately visible
-- [ ] **Compatibility and blast radius are explicit and verified**: breaking changes name what stops working, whether failure is loud or silent, the replacement, and the actual in-repository impact
-- [ ] **The strongest decision evidence leads**: correctness, hangs, data loss, security, or worst-case behavior is not buried beneath routine throughput or average-case numbers
-- [ ] **Ownership and reach are accurate**: the behavior's owning module or object and its stated consumers/inheritors were verified rather than inferred
+- [ ] **The opening fits the change type**: capability for a feature, before/after for a behavior change, symptom for a fix, workload for performance, or developer/operator outcome for maintenance
+- [ ] **Impact and compatibility are explicit and verified when applicable**: affected callers and outputs, preserved behavior, breakage, migration, failure mode, ownership, and downstream reach are accurate
+- [ ] **Illustration and evidence are proportionate**: examples, reproducers, screenshots, diagrams, or benchmarks appear only when they clarify the change and include enough context to interpret or repeat them
 - [ ] **PR body covers the full material diff**: every independent behavior, packaging, documentation, migration, or repository-policy change is represented without restating files line by line
 - [ ] **Changes are reader-facing**: one behavior, contract, or operational fact per bullet; test coverage stays in `## Testing`; prose uses plain terms and states facts without editorial argument
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
-- [ ] Body explains *what was wrong* and *why this change*, not just *what changed* (in the **PR description**, not the commit)
+- [ ] Body explains why the change exists and what it means, not only how it was implemented
 - [ ] **Commit messages are concise**: purpose readable at a glance from the subject; no error dumps, essays, or measurements in the body (PR-description material)
-- [ ] **PR description uses only applicable GitHub template headers**: matches `.github/PULL_REQUEST_TEMPLATE.md` when present; empty, routine-validation, maintainer-setup, and hypothetical risk sections omitted rather than padded
+- [ ] **PR/MR description uses only applicable template headers**: matches the repository's host template when present; empty, repetitive, routine-validation, maintainer-setup, and hypothetical sections are omitted rather than padded
 - [ ] Suggested commit message included for non-trivial fixes
 - [ ] **Every commit has its own commit message block**: N commits means N `markdown` blocks; the delivery is incomplete without them
 - [ ] For PR drafts: branch name, each commit message, PR title, PR description each in their own code block
