@@ -166,6 +166,8 @@ A strong description is:
 - **Accurate:** verify claims about affected callers, inheritance, compatibility, performance, and test coverage. State uncertainty instead of guessing.
 - **Proportionate:** a small change may need three short sections; a breaking or high-risk change may need examples, migration guidance, evidence, and rollback details.
 
+**Write like a reference book.** The register to aim for is a senior engineer writing an introductory book or a user manual: authoritative, technical, concise, clean — and easy to follow. Sentences carry their technical content in natural order ("two config options common to all plot classes", not "behind two config options shared by every plot class"); a comparison is spelled out ("compared with fitting each side separately") rather than compressed into a colon clause; a failure is given its concrete consequence ("growing the figure for one panel would push the others out of place"), not just its mechanism name. This is not conversational license: no chat, no hedging, no anthropomorphism, no lost precision. When a description reads badly, the fix is rephrasing, not trimming.
+
 ### Adapt the content to the change
 
 | Change type | Lead with | Add when it improves understanding |
@@ -188,16 +190,18 @@ Match the repository's PR/MR template when one exists. Otherwise choose from the
 - `## Motivation`: the need, symptom, limitation, or measured problem that prompted the change.
 - `## Impact / Compatibility`: affected users and callers, preserved behavior, breaking changes, migration, and whether failure is loud or silent.
 - `## Changes`: one material behavior, contract, or operational fact per bullet. Mention implementation only when it explains a guarantee, constraint, or risk. Keep testing out of this section.
-- `## Example / Demo`: the shortest realistic input, API call, command, output, screenshot, or before/after comparison that makes observable behavior easier to understand.
+- `## Example / Demo`: the shortest realistic input, API call, command, output, screenshot, or before/after comparison that makes observable behavior easier to understand. For a new or changed API surface, show actual code in code blocks — the call site as it was and as it is now, and the shortest realistic usage of each new argument or method — rather than describing the code in sentences.
 - `## Reproducer`: for a bug that can be reproduced, the exact minimal input or command plus actual and expected results. If the fix is already committed, obtain the before result from the base revision, preferably in a worktree, rather than reconstructing it from memory. If reproduction is impractical, describe the trigger and limitation precisely.
 - `## Performance`: the workload, scale, baseline, new result, units, and measurement method. Separate typical behavior from a material worst case and name relevant resource tradeoffs.
 - `## Testing`: material evidence such as regression coverage, compatibility checks, visual verification, or an important validation gap. Do not list routine lint, formatting, type checking, or CI success when host checks already show it.
 - `## Risk / Rollout`: concrete residual risk, deployment or migration order, monitoring, rollback, or known limitation.
 - `## Related Issues`: issue links, dependent changes, and follow-up work with public meaning.
 
+**Headers name kinds of content.** Each header names the kind of content its section holds — `## Summary`, `## Performance`, `## Migration`, or any other section the change warrants. A change with several parts lists them as bullets inside `## Changes`, each phrased as the change itself, so the parts stay scannable without multiplying sections.
+
 Keep one coherent story from motivation to behavior to evidence. A compact change may need only `## Summary`, `## Changes`, and `## Testing`; do not force extra headings. Use a table when several symptoms, cases, or compatibility outcomes need an exact mapping. Use code, screenshots, diagrams, or benchmark tables only when they communicate the change more clearly than a short paragraph.
 
-Make the description stand alone without narrating the diff. Do not assume every reader will inspect the source changes. Avoid dense internal vocabulary, editorial flourish, design advocacy, and rejected alternatives unless they expose a lasting constraint or material tradeoff. Keep private operations, conversation context, credentials, and maintainer-only setup outside the PR/MR.
+Make the description stand alone without narrating the diff. Do not assume every reader will inspect the source changes. Do not restate the docstrings either: parameter-by-parameter semantics live in the code the diff already carries; the description covers behavior, impact, and evidence. Avoid dense internal vocabulary, editorial flourish, design advocacy, and rejected alternatives unless they expose a lasting constraint or material tradeoff. Keep private operations, conversation context, credentials, and maintainer-only setup outside the PR/MR.
 
 ## Changelog entry style
 
@@ -246,7 +250,9 @@ The four-file Windows lock-offset fix on the coding-agent surface: edit the four
 - [ ] **Impact and compatibility are explicit and verified when applicable**: affected callers and outputs, preserved behavior, breakage, migration, failure mode, ownership, and downstream reach are accurate
 - [ ] **Illustration and evidence are proportionate**: examples, reproducers, screenshots, diagrams, or benchmarks appear only when they clarify the change and include enough context to interpret or repeat them
 - [ ] **PR body covers the full material diff**: every independent behavior, packaging, documentation, migration, or repository-policy change is represented without restating files line by line
-- [ ] **Changes are reader-facing**: one behavior, contract, or operational fact per bullet; test coverage stays in `## Testing`; prose uses plain terms and states facts without editorial argument
+- [ ] **Changes are reader-facing**: one behavior, contract, or operational fact per bullet; test coverage stays in `## Testing`; prose reads like a reference manual — technical, concise, easy to follow — and states facts without editorial argument
+- [ ] **Headers are content types**: the parts of a multi-part change are bullets inside `## Changes`, not sections of their own
+- [ ] **An API change shows actual code**: the before/after call site and the shortest realistic usage of each new argument or method, in code blocks
 - [ ] All pre-delivery checks ran and passed (or failures are surfaced)
 - [ ] Body explains why the change exists and what it means, not only how it was implemented
 - [ ] **Commit messages are concise**: purpose readable at a glance from the subject; no error dumps, essays, or measurements in the body (PR-description material)
