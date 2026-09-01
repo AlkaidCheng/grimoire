@@ -29,6 +29,29 @@ Which one fires: "is this the right abstraction" / "reduce complexity" calls for
 
 Each artifact is self-describing. Open its folder (or file) and read the heading; it states what the artifact does, what it expects as input, and how to drop it into your own setup. Copy what you need; there's no install step and no runtime to wire up.
 
+## Linking the skills into a project
+
+`scripts/link_skills.sh` links every tracked skill into a project's coding-agent skill directories, one symlink per skill, so the project's own skills (real directories) coexist beside the shared set:
+
+```
+scripts/link_skills.sh <project-dir> [<project-dir>...]
+```
+
+By default both common agent paths are populated (`.claude/skills` and `.codex/skills`); choose others with `-a`:
+
+```
+scripts/link_skills.sh -a .claude ~/work/myproject   # Claude Code only
+scripts/link_skills.sh -n ~/work/myproject           # dry-run
+```
+
+The script replaces a whole-directory `skills` symlink with a real directory of per-skill links, never touches a real file or directory (a project-specific skill keeps shadowing the shared one), prunes links whose grimoire skill was removed, and is idempotent: re-run it after adding a skill to the grimoire to pick it up everywhere.
+
+`--remove` (`-r`) takes the shared skills out again. Symlinks into the grimoire are removed; a real copy is removed only when its content hash matches the grimoire skill byte for byte, so a diverged copy — a project fork or a stale snapshot — is kept and reported; links resolving elsewhere and project-specific skills are untouched, and a skills directory left empty is cleaned up:
+
+```
+scripts/link_skills.sh -r ~/work/myproject
+```
+
 ## Adding an artifact
 
 1. Pick the directory that fits.
