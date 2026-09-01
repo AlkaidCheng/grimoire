@@ -5,7 +5,7 @@ description: Use whenever the user asks to review, polish, clean up, or make cod
 
 # Code Polishing
 
-The "make it look like a human wrote it on the first try" pass: strip the traces iteration leaves (comments referencing past versions, uncalled helpers, stale docstrings, cross-module reaches).
+The "make it look like a human wrote it on the first try" pass: strip the traces iteration leaves (comments referencing past versions, uncalled helpers, stale docstrings, cross-module reaches). The pass serves maintainability: every artifact stripped is noise the next maintainer no longer pays for.
 
 ## Scope
 
@@ -20,7 +20,7 @@ The "make it look like a human wrote it on the first try" pass: strip the traces
 8. Personal / sensitive / device information in committed files
 9. Docstring minimalism (user-facing reference content only)
 
-**Does NOT cover** (hand off): formatting, type hints, docstring style, and language idioms belong to `python-code-review` / `cpp-code-review`; algorithmic improvements and API redesign to `software-design`. A blended request ("polish and modernize") runs polish first, then the language review: style review on a noisy codebase wastes both passes, so one layer per pass.
+**Does NOT cover** (hand off): formatting, type hints, docstring style, and language idioms belong to `python-code-review` / `cpp-code-review`; algorithmic improvements, API redesign, and structural-complexity reduction to `software-design`. A function tripping the complexity measures (cyclomatic, cognitive, Halstead — [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md)) is a refactoring finding, not a polishing one: restructuring control flow can change behavior, so note it and hand it off rather than let it ride a `[polish]` commit. A blended request ("polish and modernize") runs polish first, then the language review: style review on a noisy codebase wastes both passes, so one layer per pass.
 
 **Relationship to `code-delivery`.** Stages of one pipeline: this skill changes the *content* of the code; `code-delivery` packages and ships it (gates, branch, commit and PR text, git). "Clean this up" is polishing; "fix this" / "open a PR" is delivery. Full arc: polish, then language review, then deliver. `code-delivery` owns commit/PR conventions; polishing adds only the `[polish]` prefix and the no-behavioral-change line.
 
@@ -174,5 +174,5 @@ Files:
 - [ ] Commits ordered least-risky to most-risky
 - [ ] Full test suite + lint + type-check pass after each commit
 - [ ] Each commit body says "no behavioral change" (or explicitly describes the structural change)
-- [ ] No bug fixes smuggled into polishing commits
+- [ ] No bug fixes or control-flow restructuring smuggled into polishing commits; complexity findings noted and handed off
 - [ ] Hand-off to the appropriate language-specific skill noted in the PR description, if a style pass should follow

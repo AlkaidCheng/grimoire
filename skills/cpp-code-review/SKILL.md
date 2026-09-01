@@ -7,7 +7,7 @@ description: The coding standard for C++ (clang-format style, modern C++ and typ
 
 The coding standard for C++: how it should be written and how it should be reviewed. The language-agnostic conduct is defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md) and applies here in full: the change ethos (every change needs a reason; never change code just to change it) and the two working modes, **authoring** (apply the standard as you write; the default when implementing or modifying C++) and **reviewing** (audit against it and return an improved version per "How to Deliver the Review").
 
-Default to modern C++ (C++17 or later) unless the user specifies a standard; ask when the codebase context is ambiguous and the distinction matters.
+The standard's aim is code that is easy to maintain: correct today and cheap to read, change, and test tomorrow. Default to modern C++ (C++17 or later) unless the user specifies a standard; ask when the codebase context is ambiguous and the distinction matters.
 
 ## Review Checklist
 
@@ -113,6 +113,7 @@ Optimize where it matters, not everywhere.
 The shared clarity doctrine (short single-purpose functions, early returns, complex expressions broken into named intermediates) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md); named intermediates pay off most in template-heavy code. C++ adds:
 
 - **Consistent patterns** within a module: don't mix exceptions and return codes for the same kind of operation.
+- **Complexity tripwires**: clang-tidy's `readability-function-cognitive-complexity` and `readability-function-size` flag functions to split; the three measures and their reduction moves are in the shared doctrine.
 - **Minimize preprocessor**: `constexpr`/`consteval`/`if constexpr`/templates over `#ifdef` chains; macros only for what the language can't express (`__FILE__`, `__LINE__`).
 - **Clean headers**: minimize exposure, forward declare aggressively, PIMPL for complex classes to reduce compilation dependencies.
 
