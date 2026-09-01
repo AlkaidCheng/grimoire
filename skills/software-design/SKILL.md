@@ -5,7 +5,7 @@ description: Use this skill when making or reviewing software *design* decisions
 
 # Software Design
 
-How to split a system into parts, hide detail, and keep the whole cheap to change: the layer above formatting and naming. A capable model already writes reasonable names, short functions, early returns, and correct-before-fast; collected here are the design moves that are easy to skip under time pressure. Source tags: **[APOSD]** Ousterhout, **[PP]** Hunt & Thomas, **[CC]** McConnell, **[TF]** Beck.
+How to split a system into parts, hide detail, and keep the whole cheap to change: the layer above formatting and naming. Maintainability is the primary goal — implement for the reader and the next change, not just for today's behavior. A capable model already writes reasonable names, short functions, early returns, and correct-before-fast; collected here are the design moves that are easy to skip under time pressure. Source tags: **[APOSD]** Ousterhout, **[PP]** Hunt & Thomas, **[CC]** McConnell, **[TF]** Beck.
 
 The classic named principles, in this skill's sharper form:
 
@@ -34,6 +34,8 @@ The cost of software is mostly the cost of changing it; what drives that cost is
 - **One change touches many files**: the same fact lives in several places, or a decision wasn't kept in one spot.
 - **Too much to keep in your head**: a short function hiding three surprising side effects is worse than a longer, obvious one; fewer lines is not the goal.
 - **You can't tell what you'd have to change**: the worst case, unclear what to touch or know to change safely. Fix by making the needed information visible where it's needed.
+
+At function scale the symptoms have names: **cyclomatic complexity** (independent paths), **cognitive complexity** (how hard the code is for a person to follow), and **Halstead difficulty** (expression density), defined with their reduction moves in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). They quantify "too much to keep in your head": treat a high value as a symptom to name, not a number to optimize.
 
 The two roots are always **dependencies** (code you can't understand or change on its own) and **things not being obvious** (needed information isn't in front of you). Every move below reduces one of them.
 

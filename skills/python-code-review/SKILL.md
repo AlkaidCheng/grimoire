@@ -7,7 +7,7 @@ description: The coding standard for Python (style, naming, type hints, NumPy do
 
 The coding standard for Python: how it is written and how it is reviewed. The language-agnostic conduct is defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md) and applies here in full: the change ethos (every change needs a reason; never change code just to change it) and the two working modes, **authoring** (apply the standard as you write; the default when implementing or modifying Python) and **reviewing** (audit against it and return an improved version per "Delivering the Review").
 
-Work the criteria in order: style and naming first, then types and docstrings, then structure, performance, and safety.
+The standard's aim is code that is easy to maintain: correct today and cheap to read, change, and test tomorrow. Work the criteria in order: style and naming first, then types and docstrings, then structure, performance, and safety.
 
 ## 1. Formatting & Style
 
@@ -110,6 +110,7 @@ Optimize hot loops, large data, and the critical path; never at readability's ex
 The shared clarity-and-comments doctrine (short single-purpose functions, early returns, named intermediates in place of explanatory comments; comments say *why* not *what*, no commented-out code, TODOs with owner and ticket) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
 - **Comprehensions only when simpler than the loop**: a 3-line comprehension with nested conditions loses to the loop.
+- **Complexity tripwires**: ruff's mccabe rule (`C901`) and pylint's `too-many-branches` flag functions whose cyclomatic complexity has outgrown one function; the three measures and their reduction moves are in the shared doctrine.
 
 ## 9. Error Handling
 
