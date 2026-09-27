@@ -30,7 +30,7 @@ The deliverable is the edited working tree; the text artifacts are written in ch
 
 Run the gates the project has configured before producing any deliverable, even unasked — and only those. Discover them from the project itself rather than assuming a toolset: the test suite, the tools declared in `pyproject.toml` / `setup.cfg` (pytest, ruff, black, mypy sections), a `Makefile` / `CMakeLists.txt` target that bundles checks, or the CI workflow's steps; for C/C++, a clean rebuild watching `-Wall -Wextra`. A check the project has not adopted produces noise, not evidence (`mypy --strict` against an untyped codebase reports nothing actionable).
 
-Report results in one or two lines ("the suite passes in 1.5s; ruff/black/mypy clean"); show any failure verbatim, never a wall of output. These handoff results reach the PR description only when they give the reviewer material evidence host checks don't already convey. When a change provably cannot affect a gate (docs-only; a script the suite never imports), say so with the reason instead of running for show — claim "unaffected" only when you can point at why.
+Report results in one or two lines ("the suite passes in 1.5s; ruff/black/mypy clean"); show any failure verbatim, never a wall of output. These handoff results reach the PR description only when they give the reviewer material evidence host checks don't already convey. When a change provably cannot affect a gate (docs-only; a script the suite never imports), say so in the chat handoff with the reason instead of running for show — claim "unaffected" only when you can point at why — and keep it out of the PR description, where it would be a heading with nothing to say.
 
 ## PR draft (text artifacts)
 
@@ -137,7 +137,7 @@ For a mixed change, combine the relevant rows and lead with the primary outcome.
 
 ### Use only useful sections
 
-Match the repository's PR/MR template when one exists; otherwise choose from these and omit any that would be empty or repetitive:
+Match the repository's PR/MR template when one exists; otherwise choose from these. **Every section exists for a purpose**: it appears only when it carries information the reader acts on, and a heading whose body would be "not applicable", "unaffected", "none" or a routine gate result is dropped, not filled — a filler section is a distraction, not completeness. A repository rule that lists sections (a template, an AGENTS.md line such as "Summary / Changes / Testing") names the sections available, not a set every PR must contain, unless it says so.
 
 - `## Summary`: a short, stand-alone account of the change and why it matters.
 - `## Motivation`: the need, symptom, limitation, or measured problem behind the change.
@@ -146,13 +146,13 @@ Match the repository's PR/MR template when one exists; otherwise choose from the
 - `## Example / Demo`: the shortest realistic input, API call, command, output, screenshot, or before/after that makes behavior easier to understand. For a new or changed API surface, show actual code in code blocks — the call site as it was and as it is now, and the shortest realistic usage of each new argument or method — rather than describing the code in sentences.
 - `## Reproducer`: for a reproducible bug, the exact minimal input plus actual and expected results, with the before result taken from the base revision (preferably a worktree), not reconstructed from memory. If reproduction is impractical, describe the trigger and limitation precisely.
 - `## Performance`: workload, scale, baseline, new result, units, method; typical behavior separated from a material worst case.
-- `## Testing`: material evidence (regression coverage, compatibility checks, visual verification, an important validation gap); never routine lint/type/CI success the host already shows.
+- `## Testing`: material evidence (regression coverage, compatibility checks, visual verification, an important validation gap); never routine lint/type/CI success the host already shows. Absent when there is no such evidence: a docs-only or otherwise gate-irrelevant change has no Testing section.
 - `## Risk / Rollout`: concrete residual risk, deployment or migration order, monitoring, rollback, known limitation.
 - `## Related Issues`: issue links, dependent changes, follow-up work with public meaning.
 
 **Headers name kinds of content.** Each header names the kind of content its section holds — `## Summary`, `## Performance`, `## Migration`, or any other section the change warrants. A change with several parts lists them as bullets inside `## Changes`, each phrased as the change itself, so the parts stay scannable without multiplying sections.
 
-Keep one coherent story from motivation to behavior to evidence; a compact change may need only `## Summary`, `## Changes`, and `## Testing`. Use tables, code, screenshots, or benchmark tables only when they communicate more clearly than a short paragraph. Make the description stand alone without narrating the diff, and do not restate the docstrings: parameter-by-parameter semantics live in the code the diff carries; the description covers behavior, impact, and evidence. Avoid dense internal vocabulary, editorial flourish, design advocacy, and rejected alternatives unless they expose a lasting constraint or material tradeoff.
+Keep one coherent story from motivation to behavior to evidence; a compact change may need only `## Summary` and `## Changes`, and a one-line documentation fix only `## Summary`. Use tables, code, screenshots, or benchmark tables only when they communicate more clearly than a short paragraph. Make the description stand alone without narrating the diff, and do not restate the docstrings: parameter-by-parameter semantics live in the code the diff carries; the description covers behavior, impact, and evidence. Avoid dense internal vocabulary, editorial flourish, design advocacy, and rejected alternatives unless they expose a lasting constraint or material tradeoff.
 
 ## Changelog entry style
 
@@ -178,7 +178,7 @@ Universal:
 - [ ] Committed docstrings and comments read as professional reference prose
 - [ ] No personal/sensitive/device info anywhere in the delivery; neutral placeholders used
 - [ ] The description's opening fits the change type; impact and compatibility are explicit and verified; the body covers the full material diff, explains why (not only how), and serves users, developers, and reviewers without needing the conversation or a line-by-line diff read
-- [ ] Sections match the host's PR template when one exists; empty, repetitive, or routine-validation sections omitted; illustration and evidence proportionate to the change
+- [ ] Sections match the host's PR template when one exists; every section carries information the reader acts on — no empty, repetitive, "not applicable" or routine-validation sections; illustration and evidence proportionate to the change
 - [ ] Headers are content types; changes are one reader-facing fact per bullet inside `## Changes`; testing stays in `## Testing`
 - [ ] An API change shows actual code: the before/after call site and the shortest realistic usage of each new argument, in code blocks
 - [ ] Prose reads like a reference manual: technical, concise, easy to follow, no editorial argument
