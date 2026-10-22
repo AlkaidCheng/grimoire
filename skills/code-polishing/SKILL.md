@@ -32,8 +32,8 @@ The "make it look like a human wrote it on the first try" pass: strip the traces
 Read-heavy, edit-light: most of the work is finding what to delete or fix.
 
 1. **Read before editing.** Walk the whole package first; build a per-category list in two passes: grep-driven (the detection patterns below, every hit with file:line) and eyes-driven (docstrings against signatures, comments against the code they sit on; grep can't find a docstring that says "returns a list" when the function returns a dict).
-2. **Categorize.** The category determines the commit; the commit determines review effort and blast radius.
-3. **One commit per category, least-risky first**, each leaving the tree green: pure deletions (Categories 1, 2, 8: removal-only, zero behavior change), then text-only rewrites (Categories 3, 9, 10: stale docs, docstring trimming, wording), then dead-code removal (behavior unchanged *if you're right that it's dead*), then encapsulation fixes, then renames (caller sites; highest blast radius). Never combine categories, and never sneak a behavioral fix into a polishing commit: a real bug found while polishing goes in its own non-polishing commit (and probably its own PR).
+2. **Categorize.** The category determines the commit; the commit determines review effort and how far a mistake can reach.
+3. **One commit per category, least-risky first**, each leaving the tree green: pure deletions (Categories 1, 2, 8: removal-only, zero behavior change), then text-only rewrites (Categories 3, 9, 10: stale docs, docstring trimming, wording), then dead-code removal (behavior unchanged *if you're right that it's dead*), then encapsulation fixes, then renames (caller sites; the widest reach). Never combine categories, and never sneak a behavioral fix into a polishing commit: a real bug found while polishing goes in its own non-polishing commit (and probably its own PR).
 4. **Verify after every commit**: full test suite, lint, type-check; state the result in the commit body.
 
 Polishing-specific verification traps:
@@ -147,7 +147,7 @@ Calibration: a one-sentence docstring is ideal, not underdone. A 30-line docstri
 
 ### Category 10: AI-flavored wording
 
-**Standard:** a comment or docstring that passes Category 1 (third person, no history, no asides) can still read as machine-written through its vocabulary alone. Generated prose leans on a small set of favorite words: metaphors borrowed from the delivery process ("ship", "gate", "fence", "render", "surface", "wire up"), quality adjectives that assert instead of state ("robust", "gracefully", "seamless", "comprehensive"), and connective filler ("Note that", "Importantly", "This ensures that"). Each is grammatical; together they are a fingerprint. Rewrite in the word a maintainer would use explaining the code at a whiteboard. The term stays only when it is the thing's actual name and every plain alternative would be wrong or vaguer.
+**Standard:** a comment or docstring that passes Category 1 (third person, no history, no asides) can still read as machine-written through its vocabulary alone. Generated prose leans on a small set of favorite words: metaphors borrowed from the delivery process ("ship", "gate", "fence", "render", "surface", "wire up"), quality adjectives that assert instead of state ("robust", "gracefully", "seamless", "comprehensive"), connective filler ("Note that", "Importantly", "This ensures that"), and words borrowed from safety or operations talk ("vouch for", "hazard", "blast radius", "guardrail"). Each is grammatical; together they are a fingerprint. Rewrite in the word a maintainer would use explaining the code at a whiteboard. The term stays only when it is the thing's actual name and every plain alternative would be wrong or vaguer.
 
 | Smell | Plain wording | The term stays when |
 |---|---|---|
@@ -161,6 +161,7 @@ Calibration: a one-sentence docstring is ideal, not underdone. A 30-line docstri
 | "Ensures that...", "Handles...", "Takes care of...", "Responsible for..." as a docstring opener | the specific verb: parses, closes, retries, skips, raises | a caller precondition ("the caller ensures the lock is held") |
 | Note that, Importantly, Crucially, Essentially, Simply, It is worth noting, Specifically | drop the opener; keep the sentence | never |
 | sanity check, bail (out), short-circuit, footgun, battle-tested, first-class, single source of truth, load-bearing, happy path, fast path, canonical | check; return early; a plain description | an established term of the domain (canonical form; a documented fast path) |
+| vouch (for), hazard(ous), blast radius, guardrail | confirm, trust, show that; risk, danger, what goes wrong; how far a change reaches; check, limit | a domain's own term (a hazard function in survival analysis, a hazard label on a chemical) |
 
 The table is a seed, not a filter. Any word that appears in every generated file and nowhere in the repository's older, human-written prose is a candidate; `git log -p` on a pre-existing module shows the house vocabulary to match.
 
@@ -169,6 +170,7 @@ Detection:
 rg -n -i "\b(ship(ped|s|ping)?|land(ed|s)?|render(ed|s|ing)?|fenc(e|ed|ing)|gat(e|ed|es|ing))\b" -tsrc
 rg -n -i "\b(robust(ly)?|graceful(ly)?|seamless(ly)?|elegant(ly)?|comprehensive|leverage|utiliz|surfaces?\b|wire[sd]? up|plumb|hoist)" -tsrc
 rg -n -i "\b(ensures?|handles?|takes care of|responsible for) " -tsrc   # docstring openers
+rg -n -i "\b(vouch(ed|es|ing)?|hazard(ous|s)?|blast radius|guardrails?)\b" -tsrc
 rg -n -i "^\s*(#|//|\*|\"\"\")?\s*(note that|importantly|crucially|essentially|simply put|it is worth noting)" -tsrc
 ```
 
@@ -204,7 +206,7 @@ Files:
 
 - [ ] Two reading passes done: grep-driven + eyes-driven
 - [ ] Docstrings/comments read as professional reference prose: no conversational artifacts, reader asides, editorial flourishes, or edit-history narration; no text organized around removed code (Category 1)
-- [ ] Comments and docstrings use the repository's plain vocabulary: no delivery metaphors (ship, render, fence, gate, surface), quality adjectives, or filler openers unless the term is the thing's actual name (Category 10)
+- [ ] Comments and docstrings use the repository's plain vocabulary: no delivery metaphors (ship, render, fence, gate, surface), quality adjectives, filler openers, or words borrowed from safety or operations talk (vouch, hazard, blast radius) unless the term is the thing's actual name (Category 10)
 - [ ] No personal/sensitive/device info in any committed file: identifiers, machine/hardware specs, host paths, secrets (Category 8)
 - [ ] Findings categorized; one commit per category
 - [ ] Commits ordered least-risky to most-risky

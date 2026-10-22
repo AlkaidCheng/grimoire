@@ -42,7 +42,7 @@ The sections that repay the most effort, the ones a fresh session cannot reconst
 
 - **Reasoning behind decisions**, not just the decisions: why an approach was chosen, the tradeoff, which failure mode a guard exists to prevent. Without that, a session relitigates settled questions or undoes a fix whose purpose is invisible.
 - **The premise each change rested on, especially when evidence overturned the obvious one**: "the bug was assumed to be in input validation; tracing showed it was a race in the signup handler" stops the next session from chasing the wrong cause.
-- **Scope**: bound each change by naming what it leaves untouched (which inputs, paths, or platforms still run the old way), so the reader knows the blast radius.
+- **Scope**: bound each change by naming what it leaves untouched (which inputs, paths, or platforms still run the old way), so the reader knows how far the change reaches.
 
 Three standing lists:
 
