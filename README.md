@@ -19,7 +19,7 @@ Two layers. A **standard** governs how code is written: `software-design` for st
 
 - **`software-design`**: the structural standard (decomposition, interfaces, coupling, complexity). Decides *what* the design problem is and hands the fix to the others. Applied while authoring and on design review.
 - **`python-code-review` / `cpp-code-review`**: the language standard (PEP 8, typing, idioms / clang-format, modern C++, RAII). Applied while writing, and again as the review pass in the pipeline.
-- **`code-polishing`**: content cleanup; strip iteration artifacts, dead code, stale docs, naming drift. First pipeline pass.
+- **`code-polishing`**: content cleanup; strip iteration artifacts, AI-flavored wording, dead code, stale docs, naming drift. First pipeline pass.
 - **`code-delivery`**: packages and ships whatever change exists (commit/PR text and git on the coding-agent surface, or inline/zip on the chat surface). Last pipeline pass; owns the commit/PR conventions the others defer to.
 - **`session-handoff`**: standalone; a cold-start handoff document when context runs low or a session ends. Not part of the code pipeline.
 
