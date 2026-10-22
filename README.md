@@ -13,17 +13,18 @@ A personal collection of reusable artifacts for working with large language mode
 
 ## How the skills relate
 
-Two layers. A **standard** governs how code is written: `software-design` for structure (decomposition, coupling, abstraction) and `python-code-review` / `cpp-code-review` for language (style, types, idioms), applied while you author. A **pipeline** then readies existing code to ship: clean up, review, package. `session-handoff` stands apart.
+Two layers. A **standard** governs how code is written: `software-design` for structure (decomposition, coupling, abstraction), `python-code-review` / `cpp-code-review` for language (style, types, idioms), and `code-safety` for operations that cannot be undone or that take a path, name or command from data, applied while you author. A **pipeline** then readies existing code to ship: clean up, review, package. `session-handoff` stands apart.
 
 ![grimoire skills: a standards layer (software-design for structure, python-code-review / cpp-code-review for language) applied while writing, above a pipeline (code-polishing, then the language review pass, then code-delivery to a PR); session-handoff is standalone.](docs/assets/skills-workflow.svg)
 
 - **`software-design`**: the structural standard (decomposition, interfaces, coupling, complexity). Decides *what* the design problem is and hands the fix to the others. Applied while authoring and on design review.
 - **`python-code-review` / `cpp-code-review`**: the language standard (PEP 8, typing, idioms / clang-format, modern C++, RAII). Applied while writing, and again as the review pass in the pipeline.
+- **`code-safety`**: the safety standard for operations that cannot be undone or that an input can turn against the program. Names the failure scenarios and the design moves that keep the dangerous call away from the wrong target. Covers removing, overwriting and moving files, paths built from data, and external tools that act on them; further classes of risk are added as sections of the same shape. Applied while authoring and on review.
 - **`code-polishing`**: content cleanup; strip iteration artifacts, AI-flavored wording, dead code, stale docs, naming drift. First pipeline pass.
 - **`code-delivery`**: packages and ships whatever change exists (commit/PR text and git on the coding-agent surface, or inline/zip on the chat surface). Last pipeline pass; owns the commit/PR conventions the others defer to.
 - **`session-handoff`**: standalone; a cold-start handoff document when context runs low or a session ends. Not part of the code pipeline.
 
-Which one fires: "is this the right abstraction" / "reduce complexity" calls for `software-design`; writing or reviewing Python/C++ calls for the language review; "clean this up" calls for `code-polishing`; "fix this" / "open a PR" calls for `code-delivery`.
+Which one fires: "is this the right abstraction" / "reduce complexity" calls for `software-design`; writing or reviewing Python/C++ calls for the language review; any operation that cannot be undone, or that takes a path, name or command from data, calls for `code-safety`; "clean this up" calls for `code-polishing`; "fix this" / "open a PR" calls for `code-delivery`.
 
 ## Using an artifact
 

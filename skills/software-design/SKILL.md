@@ -24,6 +24,7 @@ This skill decides *what* the design problem is; the fix goes to its owner:
 | Language style, type hints, idioms | `python-code-review` / `cpp-code-review` |
 | Stripping dead code, stale docs, iteration artifacts, renames | `code-polishing` |
 | Commit split, "no behavior change" messages, PR text | `code-delivery` |
+| Guards for code that deletes, overwrites or builds paths from data | `code-safety` |
 
 When a request mixes layers, do design first: fixing structure after formatting wastes the formatting.
 
