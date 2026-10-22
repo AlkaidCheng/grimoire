@@ -1,6 +1,6 @@
 ---
 name: code-polishing
-description: Use whenever the user asks to review, polish, clean up, or make code PR-ready ("remove cruft", "make this PR-ready", "review pass", "clean up this mess", any pre-merge cleanup), or when a finished change has accumulated iteration artifacts to strip: LLM/conversation comments, past-PR references, dead code, stale docstrings, encapsulation violations, naming drift. Upstream of code-delivery, which packages a change and writes its commit and PR text. Owns language-agnostic structural cleanup; for design decisions (abstraction, coupling, whether to refactor first) use software-design; for style defer to python-code-review (PEP 8, typing, idioms) and cpp-code-review (clang-format, modern C++). When unsure between polishing and style, pick polishing if the ask names cleanup, artifacts, dead code, stale docs, or PR-readiness.
+description: Use whenever the user asks to review, polish, clean up, or make code PR-ready ("remove cruft", "make this PR-ready", "review pass", "clean up this mess", any pre-merge cleanup), or when a finished change has accumulated iteration artifacts to strip: LLM/conversation comments, AI-flavored wording, past-PR references, dead code, stale docstrings, encapsulation violations, naming drift. Upstream of code-delivery, which packages a change and writes its commit and PR text. Owns language-agnostic structural cleanup; for design decisions (abstraction, coupling, whether to refactor first) use software-design; for style defer to python-code-review (PEP 8, typing, idioms) and cpp-code-review (clang-format, modern C++). When unsure between polishing and style, pick polishing if the ask names cleanup, artifacts, dead code, stale docs, or PR-readiness.
 ---
 
 # Code Polishing
@@ -19,6 +19,7 @@ The "make it look like a human wrote it on the first try" pass: strip the traces
 7. API renames for coherence
 8. Personal / sensitive / device information in committed files
 9. Docstring minimalism (user-facing reference content only)
+10. AI-flavored wording in comments and docstrings
 
 **Does NOT cover** (hand off): formatting, type hints, docstring style, and language idioms belong to `python-code-review` / `cpp-code-review`; algorithmic improvements, API redesign, and structural-complexity reduction to `software-design`. A function tripping the complexity measures (cyclomatic, cognitive, Halstead — [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md)) is a refactoring finding, not a polishing one: restructuring control flow can change behavior, so note it and hand it off rather than let it ride a `[polish]` commit. A blended request ("polish and modernize") runs polish first, then the language review: style review on a noisy codebase wastes both passes, so one layer per pass.
 
@@ -32,7 +33,7 @@ Read-heavy, edit-light: most of the work is finding what to delete or fix.
 
 1. **Read before editing.** Walk the whole package first; build a per-category list in two passes: grep-driven (the detection patterns below, every hit with file:line) and eyes-driven (docstrings against signatures, comments against the code they sit on; grep can't find a docstring that says "returns a list" when the function returns a dict).
 2. **Categorize.** The category determines the commit; the commit determines review effort and blast radius.
-3. **One commit per category, least-risky first**, each leaving the tree green: pure deletions (Categories 1, 2, 8: removal-only, zero behavior change), then stale-doc fixes, then dead-code removal (behavior unchanged *if you're right that it's dead*), then encapsulation fixes, then renames (caller sites; highest blast radius). Never combine categories, and never sneak a behavioral fix into a polishing commit: a real bug found while polishing goes in its own non-polishing commit (and probably its own PR).
+3. **One commit per category, least-risky first**, each leaving the tree green: pure deletions (Categories 1, 2, 8: removal-only, zero behavior change), then text-only rewrites (Categories 3, 9, 10: stale docs, docstring trimming, wording), then dead-code removal (behavior unchanged *if you're right that it's dead*), then encapsulation fixes, then renames (caller sites; highest blast radius). Never combine categories, and never sneak a behavioral fix into a polishing commit: a real bug found while polishing goes in its own non-polishing commit (and probably its own PR).
 4. **Verify after every commit**: full test suite, lint, type-check; state the result in the commit body.
 
 Polishing-specific verification traps:
@@ -140,9 +141,43 @@ Three standards, applied to every docstring, public and private:
 
 1. **Document what a user of the API needs**: what the thing does, parameters/returns/raises, essential usage constraints. Cut anything only useful to someone editing the implementation.
 2. **Implementation details do not surface**, with one exception: a *non-trivial* detail a user must know to use the API correctly stays ("the returned object is a copy", "a None key is refused"). Internal mechanics (which helper does the work, merge orders, resolution walk-throughs) go.
-3. **Reference prose only** (Category 1 applied to docstrings): no design arguments, essays, reader asides, or provenance; third person throughout.
+3. **Reference prose only** (Categories 1 and 10 applied to docstrings): no design arguments, essays, reader asides, or provenance; third person throughout.
 
 Calibration: a one-sentence docstring is ideal, not underdone. A 30-line docstring on a private helper is an essay wearing a docstring's clothes; compress to its behavioral facts and keep every fact. Framework/base-class docstrings legitimately carry more contract detail when the contract *is* the user-facing API (an override hook's obligations, a key grammar users write against). Where the project builds API docs from docstrings, run that build as this category's formatting gate, and prove a docstring-only edit with a docstring-stripped AST comparison rather than by eyeballing the diff.
+
+### Category 10: AI-flavored wording
+
+**Standard:** a comment or docstring that passes Category 1 (third person, no history, no asides) can still read as machine-written through its vocabulary alone. Generated prose leans on a small set of favorite words: metaphors borrowed from the delivery process ("ship", "gate", "fence", "render", "surface", "wire up"), quality adjectives that assert instead of state ("robust", "gracefully", "seamless", "comprehensive"), and connective filler ("Note that", "Importantly", "This ensures that"). Each is grammatical; together they are a fingerprint. Rewrite in the word a maintainer would use explaining the code at a whiteboard. The term stays only when it is the thing's actual name and every plain alternative would be wrong or vaguer.
+
+| Smell | Plain wording | The term stays when |
+|---|---|---|
+| ship, shipped, land, landed | release, include, deliver, merge; "is in 2.3" | the repository's own docs use it as a release verb |
+| render, rendered | show, display, print, format, write, produce | the code really renders (HTML, graphics, templates) |
+| fence, fenced | code block, backticks; guard, check | a memory or GPU fence; the Markdown library's own name |
+| gate, gated, gating | check, condition, prerequisite, "runs only when" | a logic gate; a flag or CI check the project itself names a gate |
+| surface (verb), bubble up, wire up, plumb, thread through, hoist | report, raise, return, expose, connect, pass, register | hardware wiring; compiler hoisting |
+| robust, graceful(ly), properly, correctly, safely, seamless, elegant, clean, comprehensive, rich, powerful | delete, or state the behavior the adjective claimed ("retries three times", "returns an empty list for a missing file") | never as a bare quality claim |
+| leverage, utilize, harness (verb), orchestrate | use, run, call | never |
+| "Ensures that...", "Handles...", "Takes care of...", "Responsible for..." as a docstring opener | the specific verb: parses, closes, retries, skips, raises | a caller precondition ("the caller ensures the lock is held") |
+| Note that, Importantly, Crucially, Essentially, Simply, It is worth noting, Specifically | drop the opener; keep the sentence | never |
+| sanity check, bail (out), short-circuit, footgun, battle-tested, first-class, single source of truth, load-bearing, happy path, fast path, canonical | check; return early; a plain description | an established term of the domain (canonical form; a documented fast path) |
+
+The table is a seed, not a filter. Any word that appears in every generated file and nowhere in the repository's older, human-written prose is a candidate; `git log -p` on a pre-existing module shows the house vocabulary to match.
+
+Detection:
+```bash
+rg -n -i "\b(ship(ped|s|ping)?|land(ed|s)?|render(ed|s|ing)?|fenc(e|ed|ing)|gat(e|ed|es|ing))\b" -tsrc
+rg -n -i "\b(robust(ly)?|graceful(ly)?|seamless(ly)?|elegant(ly)?|comprehensive|leverage|utiliz|surfaces?\b|wire[sd]? up|plumb|hoist)" -tsrc
+rg -n -i "\b(ensures?|handles?|takes care of|responsible for) " -tsrc   # docstring openers
+rg -n -i "^\s*(#|//|\*|\"\"\")?\s*(note that|importantly|crucially|essentially|simply put|it is worth noting)" -tsrc
+```
+
+Read each hit:
+
+- **The whiteboard test.** "The parser gates on the version" becomes "The parser checks the version first"; "errors surface to the caller" becomes "errors propagate to the caller"; "the report is rendered to stdout" becomes "the report is printed to stdout".
+- **Name vs. metaphor.** `render()` in a template engine, `std::atomic_thread_fence`, a `FeatureGate` class the project defines: the word is the subject's name, and the prose keeps it. A repo-wide grep showing the word used as an identifier settles it; a word that appears only in comments is a metaphor.
+- **Rewrite, don't synonym-swap.** "Robustly handles" turned into "reliably processes" keeps the smell. State the behavior the adjective stood for; when there is no concrete behavior behind it, delete the clause.
+- **Scope.** Comments, docstrings, READMEs and changelogs. Identifiers are Category 6/7 renames with caller sites, not wording fixes. Error messages, log lines and CLI help get the same rewrite only when no test or consumer matches on the string; otherwise it is a behavioral change for its own commit.
 
 ## Commit message style for polishing
 
@@ -169,6 +204,7 @@ Files:
 
 - [ ] Two reading passes done: grep-driven + eyes-driven
 - [ ] Docstrings/comments read as professional reference prose: no conversational artifacts, reader asides, editorial flourishes, or edit-history narration; no text organized around removed code (Category 1)
+- [ ] Comments and docstrings use the repository's plain vocabulary: no delivery metaphors (ship, render, fence, gate, surface), quality adjectives, or filler openers unless the term is the thing's actual name (Category 10)
 - [ ] No personal/sensitive/device info in any committed file: identifiers, machine/hardware specs, host paths, secrets (Category 8)
 - [ ] Findings categorized; one commit per category
 - [ ] Commits ordered least-risky to most-risky
