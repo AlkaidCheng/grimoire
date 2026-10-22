@@ -10,19 +10,20 @@ How to package and present code changes so the user can apply them quickly. Two 
 - **The chat surface**: no repository access. Code ships as inline fenced blocks or zipped packages surfaced through the platform's file-presentation tool; three modes: inline, zipped package, PR draft. Packaging mechanics live in [`chat-packaging.md`](chat-packaging.md); read it when packaging for this surface.
 - **The coding-agent surface**: direct repository access. Code is delivered by editing files in the repo. Git operations are never run unprompted; offer them and wait for the user's go-ahead.
 
-The PR-draft *text artifacts* (branch name, commit messages, PR title, PR description) and their writing style are identical on both surfaces; human reviewers read them regardless of how the change was produced. Sections marked with a surface name are surface-specific; everything else applies to both.
+The PR-draft *text artifacts* (branch name, commit messages, PR title, PR description) and their writing style are identical on both surfaces; human reviewers read them regardless of how the change was produced. Where they appear differs: on the chat surface the user commits and opens the PR by hand, so the response shows each one in a block to copy from; on the coding-agent surface the agent writes them into the commits and the PR, and the response does not repeat them. Sections marked with a surface name are surface-specific; everything else applies to both.
 
 **Pipeline position.** `code-polishing` transforms the *content* of a change (iteration artifacts, dead code, stale docs, encapsulation and naming drift); the language reviews (`python-code-review` / `cpp-code-review`) apply the style standard; this skill runs **last**, packaging whatever change exists: gates, branch, commits, PR text. A bare "fix this" or "draft a PR" is delivery; "clean this up" is polishing. When the user asks to *see* the change as a rich HTML review page, produce it with `annotated-diff-html` into the active coding agent's own diff directory (e.g. `.claude/diffs/`); it accompanies the PR text, never replaces it.
 
 ## Surface: coding agent (direct edits and git operations)
 
-The deliverable is the edited working tree; the text artifacts are written in chat.
+The deliverable is the edited working tree. The text artifacts are written where they are used, not in chat: each commit message into its commit (`git commit -F -`), the PR title and description into the PR (`gh pr create --title … --body-file …`, `glab mr create`). The user reads them in `git log` and on the host, or asks to see them.
 
 - **Edits** go directly into the repo files. Never paste a full edited file back into chat; short clarifying excerpts are fine.
+- **The handoff is short**: a paragraph on what changed and why, the gate results in a line, the branch with its commit SHAs, the review page when one is built, the user's own commands, and the PR URL once the PR exists. It carries no commit message, PR title or PR description.
 - **Every command shown to the user gets a one-line summary above it**, so it can be judged without parsing (e.g. "Push the branch and open the PR:").
 - **Git operations require authorization.** Never run `git checkout -b`, `git add`, `git commit`, `git push`, or `git rm` unprompted. After the edits and pre-delivery checks, offer the git steps and wait for an explicit yes.
 - **On yes, the agent itself commits**, surfacing what ran (branch, staged files, commit SHAs): `git commit -F -` with the message piped in applies the authored text verbatim. Write all the commits, then pause for review; pause after each individual commit only when the user asks to review them one by one. If the user declines auto-commit, write out the full ordered sequence (branch, stage, commit via `git commit -F -` or a heredoc, any `git rm`, push), each block pasteable as is.
-- **The user's own commands are handed back explicitly**: the push (`git push -u origin <branch>`) and any PR-open step, each in its own copy-pasteable block with the literal branch name filled in. Push reveals the change externally; unless durably authorized, hand it back rather than running it.
+- **The user's own commands are handed back explicitly**: the push (`git push -u origin <branch>`) and any PR-open step, each in its own copy-pasteable block with the literal branch name filled in. A PR-open step the user runs reads the description from a file the agent wrote (`--body-file <path>`) rather than from text in chat. Push reveals the change externally; unless durably authorized, hand it back rather than running it.
 - **A created or updated PR is surfaced as its canonical URL**, verified to name the intended base and head branches, as a clickable link in the final handoff.
 - **Deletions are real**: remove files with `git rm <path>` in the authorized run, never as instructions for later, and mark them `(removed)` in the commit's file list.
 
@@ -34,18 +35,20 @@ Report results in one or two lines ("the suite passes in 1.5s; ruff/black/mypy c
 
 ## PR draft (text artifacts)
 
-Produce **each text artifact — the branch name, each commit message, the PR title, the PR description — in its own fenced code block**, in the order the user would use them. The code travels alongside: per-commit zips on the chat surface ([`chat-packaging.md`](chat-packaging.md)); the already-edited working tree plus the authorization offer on the coding-agent surface.
+**Chat surface.** Produce **each text artifact — the branch name, each commit message, the PR title, the PR description — in its own fenced code block**, in the order the user would use them, with the code alongside as per-commit zips ([`chat-packaging.md`](chat-packaging.md)).
 
 **Language tags:** branch name and PR title in plain untagged fences (bare strings); commit messages and the PR description in `markdown`-tagged blocks (they *describe* code rather than being code). When a block contains inner fenced examples, wrap it in quad backticks so the inner triple-backticks render.
 
-Response structure:
+Response structure on the chat surface:
 
 1. One-paragraph framing of what the PR does (prose, outside any block)
 2. **Branch name**
-3. **Per commit, in order**: a `### Commit N: short description` heading, the commit message block, and the surface's code delivery for that commit
+3. **Per commit, in order**: a `### Commit N: short description` heading, the commit message block, and that commit's zip
 4. **PR title**, starting with its type tag
 5. **PR description**
-6. A final summary table of the deliverables (chat surface: branch, each zip; coding-agent surface: branch, per-commit file list, any deletions)
+6. A final summary table of the deliverables: the branch and each zip
+
+**Coding-agent surface.** The same artifacts are written into the commits and the PR (see the surface section above); the response is the short handoff alone. When the user asks to see an artifact, show it then.
 
 ### One PR at a time
 
@@ -85,7 +88,7 @@ Pick the tag for the primary intent (a performance fix that also corrects result
 
 **Commits are logical development steps.** Split the work into self-contained steps a reviewer can follow — a refactor preparing the ground, the behavior change, its documentation — and never squash everything into a single commit (nor scatter one step across several).
 
-**Every commit ships with its own message in its own `markdown` block** — N commits, N blocks; a delivery without them is incomplete. Never fold two commits' text into one block or let the PR description stand in for a commit message (`git log` and the review page serve different readers).
+**Every commit has its own message.** Never fold two commits' text into one message or let the PR description stand in for a commit message (`git log` and the review page serve different readers). On the chat surface each message is its own `markdown` block — N commits, N blocks; a chat delivery without them is incomplete.
 
 **Commit messages are scan targets, not essays.** The subject carries the message; the body is short or absent. Deep material (root cause, verbatim errors, ruled-out alternatives, benchmarks) goes in the PR description.
 
@@ -183,7 +186,7 @@ Universal:
 - [ ] An API change shows actual code: the before/after call site and the shortest realistic usage of each new argument, in code blocks
 - [ ] Prose reads like a reference manual: technical, concise, easy to follow, no editorial argument
 - [ ] Pre-delivery checks ran and passed (or failures are surfaced); routine gate results stay out of the description
-- [ ] Commits are logical development steps, each with its own concise `markdown` message block in its own fence; deletions marked `(removed)`; PR title starts with its type tag; applicable host labels applied
+- [ ] Commits are logical development steps, each with its own concise message (on the chat surface, in its own `markdown` fence); deletions marked `(removed)`; PR title starts with its type tag; applicable host labels applied
 - [ ] Changelog entry (when the repo keeps one): one user-facing sentence in the matching category, citing the PR/MR
 - [ ] Only ONE PR delivered this turn; follow-ups named, not produced
 
@@ -192,6 +195,7 @@ Chat surface (zip mechanics): see the checklist in [`chat-packaging.md`](chat-pa
 Coding-agent surface:
 
 - [ ] Edits applied directly in the repo; no full file dumped into chat
+- [ ] The handoff is short and repeats no commit message, PR title or PR description; those live in the commits and the PR
 - [ ] No git write ran before the user authorized it; after authorization the agent committed itself (`git commit -F -`), surfacing branch and SHA(s), pausing for review after the commits (per commit only when asked)
 - [ ] The user's own commands (push, any PR-open step) handed back as copy-pasteable blocks with one-line summaries and the literal branch name
 - [ ] A created or updated PR verified and linked by its canonical URL
