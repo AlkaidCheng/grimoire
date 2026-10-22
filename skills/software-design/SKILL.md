@@ -56,6 +56,7 @@ Each module hides one decision (a file format, a wire protocol, a units conventi
 - **Don't split by execution order.** Read, then process, then write, one class each, makes the reader and writer both know the format. Split by what each part hides, not by when the steps run.
 - **Absorb the mess in one place**: handle unavoidable mess once inside the module, not at every caller. Sensible defaults (caller passes nothing) beat forcing every caller to fill in every value.
 - **Slightly general beats narrowly specific.** Build around the underlying capability, not today's single caller, but only slightly: no plugin system for one file format.
+- **Helpers that share an argument list are one object.** When a module grows private functions that all take the same values (a spec and a directory, a connection and a table name), those values are the state of a thing the module has not named, and each helper is one of its operations. Name the thing, give it the values once, and make the helpers its methods: the main function then reads as its sequence of steps, and nothing threads five arguments through eight calls. This is how a feature built one requirement at a time ends up as a core function ringed by helpers; the fix is the missing object, not fewer helpers. The sign to act on while writing is the third helper that takes the same first two parameters.
 
 ## Keep parts independent
 
@@ -121,6 +122,7 @@ A fast structural scan; each hit is a reason to look closer, not an automatic de
 - [ ] **Same knowledge in two places**: a format / protocol / convention written into two modules
 - [ ] **Layer that only passes things through**: adds no real behavior, just plumbing
 - [ ] **Does too much**: you can't name it without "and"; a grab-bag `utils`
+- [ ] **Helpers sharing an argument list**: private functions that all take the same values are one object's methods; name the object
 - [ ] **Long reach**: `a.b.c.d.method()` ties you to the whole chain's structure
 - [ ] **Reaches for globals, or hard to test in isolation**: dependencies are tangled; pass them in
 - [ ] **Boolean that switches behavior**: a flag parameter picking between two modes is probably two functions
