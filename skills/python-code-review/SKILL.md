@@ -126,7 +126,7 @@ Handle what is likely, document what is possible, do not paper over bugs.
 ## 10. Safety & Robustness
 
 - **No mutable default arguments**: `def f(items=[])` is the classic footgun; use `None`, initialize inside.
-- **Never trust external input**: validate user input, file paths, API responses; use `pathlib` for path manipulation to avoid traversal bugs.
+- **Never trust external input**: validate user input, file paths, API responses; use `pathlib` for path manipulation to avoid traversal bugs. Code that deletes, overwrites or moves files, or builds a path from data, follows `code-safety` (the failure scenarios and the guard design).
 - **No secrets in code**: keys, passwords, tokens go in environment variables or a secret manager.
 - **Subprocess safety**: `subprocess.run(["cmd", arg])` with a list, never `shell=True` with unsanitized input.
 - **`logging` over `print`** in library or application code; `print` is fine for scripts and one-off debugging.
