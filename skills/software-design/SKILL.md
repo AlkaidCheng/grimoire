@@ -102,6 +102,7 @@ Prefer many small cleanups, each checked, over one giant refactor PR: smaller ri
 - **Hard to name means the design is probably off.** The *and* test (SRP above): fix the design, not just the name. Honest exception: a top-level orchestration function; coordinating a sequence of steps *is* one job, as long as it reads top-to-bottom and hands the real work to named helpers.
 - **Write the interface comment first.** If the doc comment is hard to write, or explaining the interface requires describing messy internals, the *interface* is wrong; the comment caught it before you wrote the body.
 - **Keep names consistent across the API.** One verb per idea (mixing `get` / `fetch` / `load` makes readers wonder whether the difference means something) and matched pairs (`open` / `close`, `to` / `from`). Spotting the inconsistency is this skill's job; the rename is `code-polishing`'s.
+- **Keep one spelling per idea across surfaces.** A concept that appears as a command, a flag, a configuration key, a record key, a directory and an identifier under different names (`--log-level`, `logLevel`, `verbosity`) is a decision nobody made; a reader pays for the mapping at every boundary. Name a step after the action the user invokes, not the tool that performs it: the tool can change, the action is the contract. A name that differs across surfaces is a design finding because fixing it changes what the program writes and accepts.
 
 ## The trade-offs: where judgment actually happens
 
@@ -129,7 +130,7 @@ A fast structural scan; each hit is a reason to look closer, not an automatic de
 - [ ] **Too many error paths**: special cases that could be defined away
 - [ ] **Built for a future that isn't here**: an abstraction / config / hook with exactly one caller
 - [ ] **Structure and behavior mixed** in one commit is hard to review; split it
-- [ ] **Inconsistent names**: one idea, several verbs; a name you couldn't write cleanly
+- [ ] **Inconsistent names**: one idea, several verbs; a name you couldn't write cleanly; one concept spelled differently on the command line, on disk and in code
 
 For each hit, name the symptom (one change touches many files / too much to hold in your head / can't tell what to change) and the root (a dependency, or something not being obvious), then route the fix: style to the language reviewers, cleanup to `code-polishing`, commit and PR shape to `code-delivery`.
 

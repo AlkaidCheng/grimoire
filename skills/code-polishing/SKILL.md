@@ -129,7 +129,13 @@ rg -n "\b[a-z_]+\._[A-Z_]+\b" src/  # tweak per language
 
 ### Categories 6 and 7: Naming consistency, and the renames that fix it
 
-Read the public API surface together; pairs and series follow one pattern: one verb per operation kind (`read_X` vs `load_X` vs `fetch_X`), inverse pairs (`to_X`/`from_X`, `acquire_X`/`release_X`), plural for collections, boolean prefixes (`is_X`, `has_X`, `should_X`). No grep finds an inconsistent verb choice: list the public functions and read them. The rename lands as one commit per API surface (never bundle unrelated renames), touching every call site including tests, benchmarks, examples, and docs.
+The doctrine is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md): one verb per kind of operation (`read_X` vs `load_X` vs `fetch_X`), inverse pairs (`to_X`/`from_X`, `acquire_X`/`release_X`), a suffix that says which representation a value is (`config`, `config_text`, `config_path`, `config_dir`), booleans as questions, units on quantities, one spelling per idea on every surface. No grep finds an inconsistent verb or a noun that hides a path: list the public surface (functions, parameters, dataclass fields, module names) in one table and read it as a whole.
+
+**Deliver the review before the rename.** Group the findings by the rule they break, name the replacement for each, and add the names kept on purpose with the reason (a noun-named pure getter, a domain word that looks odd out of context), so the owner sees every decision. Where two conventions are both common (`_file` or `_path`; `load_` or `read_`), the choice is the owner's: recommend one, say what would flip it, and apply it package-wide only after the ruling.
+
+**Rename in order of reach, one commit per API surface.** Identifiers, parameters and module names first: they are polish. A command-line flag, a configuration key, a record key written to disk or a directory name is a contract with users and with old data, so renaming it is a behavior change for its own commit or PR with a compatibility note, never under `[polish]`. Every rename touches every call site, including tests, examples, docs and messages, until the old word is gone from prose as well as code.
+
+**Mechanical renames damage prose.** A pattern that rewrites `config` to `config_path` also rewrites "the config is parsed", and a lookbehind meant to spare `settings.config` spares `self.config` too. After each pass, read the diff of every docstring, comment, README line and message it touched and grep the tree for the old word; the fix for a damaged sentence is a hand-written sentence, not another pattern.
 
 ### Category 8: Personal / sensitive / device information
 

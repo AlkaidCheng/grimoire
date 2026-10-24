@@ -90,7 +90,7 @@ Metrics calculate_metrics(std::span<const double> values,
 
 ### 4. Variable & Function Naming
 
-The language-agnostic naming doctrine (names as the primary documentation, specific over generic, verb-led functions, booleans as predicates, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). C++ adds:
+The language-agnostic naming doctrine (names as the primary documentation, specific over generic, the representation a value is, verb-led functions, one verb per operation, booleans as predicates, units on quantities, one spelling per idea, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). C++ adds:
 
 - **Getters may omit the verb**: `size()`, `empty()`, `name()`.
 - **Template parameters**: single uppercase (`T`, `U`) for simple cases; descriptive names for constrained ones (`Container`, `Predicate`, `Allocator`).

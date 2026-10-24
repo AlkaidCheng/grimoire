@@ -20,7 +20,7 @@ Format with **Black** defaults (88-character lines); **PEP 8** for everything Bl
 
 ## 2. Naming
 
-The language-agnostic naming doctrine (names as the primary documentation, specific over generic, verb-led functions, booleans as questions, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
+The language-agnostic naming doctrine (names as the primary documentation, specific over generic, the representation a value is, verb-led functions, one verb per operation, booleans as questions, units on quantities, one spelling per idea, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
 - **Standard casing**: `snake_case` functions/methods/variables/modules; `PascalCase` classes; `UPPER_SNAKE_CASE` module constants; leading `_` signals internal. Never `l`, `O`, or `I` as single-letter names.
 - **Python-flavored generics count as generic**: `arr`, `df`, `lst` are no better than `data` or `tmp` as substantive names.
