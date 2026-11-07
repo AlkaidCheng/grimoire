@@ -1,6 +1,6 @@
 ---
 name: cpp-code-review
-description: The coding standard for C++ (clang-format style, modern C++ and type safety, RAII and resource management, const-correctness, naming, and error handling) to follow while writing C++ and to apply when reviewing it. Use when writing, implementing, or refactoring C++, or when asked to review, lint, improve, or critique it ("add const", "fix memory management", "modernize this", "make this more readable"; clang-format, clang-tidy, smart pointers), or for any .cpp/.h/.hpp/.cc/.cxx file. If C++ is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
+description: The coding standard for C++ (clang-format style, the naming convention, modern C++ and type safety, RAII and resource management, const-correctness, error handling, threads, floating-point formatting, toolchain minimums, and Python bindings) to follow while writing C++ and to apply when reviewing it. Use when writing, implementing, or refactoring C++, or when asked to review, lint, improve, or critique it ("add const", "fix memory management", "modernize this", "make this more readable"; clang-format, clang-tidy, smart pointers), or for any .cpp/.h/.hpp/.cc/.cxx file or Python extension module (pybind11, nanobind). If C++ is pasted without instructions but clearly needs work, offer a review. For structural design (decomposition, interfaces, coupling) use software-design; for language-agnostic structural or artifact cleanup defer to code-polishing; for Python use python-code-review.
 ---
 
 # C++ Code Review & Improvement
@@ -15,10 +15,17 @@ Work through in order: formatting and naming first (readability), then types and
 
 ### 1. Formatting & Style
 
-Use clang-format. Beyond what it handles:
+Use clang-format with a committed `.clang-format` (a named base style plus the project's column limit), so every editor and CI run formats alike. Beyond what it handles:
 
 - **Includes**: group as related header, C system, C++ standard library, third-party, project-local; blank-line separated, each group sorted alphabetically. `#include <header>` for system/library, `#include "header.h"` for project. Remove unused includes; prefer forward declarations in headers when the full definition isn't needed.
-- **Naming**: `PascalCase` for types (classes, structs, enums, type aliases); `snake_case` for functions, variables, namespaces, and file names; `kPascalCase` or `UPPER_SNAKE_CASE` for constants (pick one, be consistent). Private members: leading or trailing underscore; trailing is safer (leading underscore + capital letter is reserved).
+- **Naming convention**: one scheme per codebase. An established scheme wins and new code does not add a second. Without one, follow the standard library and the C++ Core Guidelines (NL.10, underscore style):
+  - `PascalCase` for types (classes, structs, enums, type aliases, concepts) and template parameters;
+  - `snake_case` for functions, variables, parameters, data members, namespaces, and file names (`order_book.hpp`, `order_book.cpp`);
+  - `kPascalCase` for constants and `enum class` enumerators;
+  - a trailing underscore on a class's private data members (`size_`), none on a plain struct's public ones; a leading underscore before a capital letter is reserved;
+  - `UPPER_SNAKE_CASE` with a project prefix for macros only.
+
+  Other schemes (camelCase functions as in LLVM and Qt, PascalCase functions as in Google's guide) are conventions to follow where a codebase has one, not standards to bring into one.
 - **Braces**: opening brace on the same line (K&R / "attach") for functions, control flow, and classes. Always brace single-line `if`/`for`/`while` bodies: the "goto fail" bug class isn't worth one saved line.
 - **Namespaces**: don't indent bodies; `// namespace foo` closing comments on long blocks. Never `using namespace` in headers; minimize in source files; prefer explicit namespacing or targeted `using` declarations.
 
@@ -29,7 +36,7 @@ Leverage the type system to catch bugs at compile time.
 - **`auto` judiciously**: fine when the type is obvious (`auto it = map.find(key)`) or painfully long; not when it hides a type the reader needs.
 - **`enum class` over plain `enum`**: prevents implicit conversions and name collisions.
 - **`[[nodiscard]]`** where ignoring the return is almost certainly a bug (error codes, newly allocated resources, computation results).
-- **`std::optional`** over sentinel values (`-1`, `nullptr` as "not found"): makes the contract explicit.
+- **`std::optional`** over sentinel values (`-1`, `nullptr` as "not found"): makes the contract explicit. Where a packed array of indices cannot afford an optional per element, the sentinels are named constants declared beside the array they mark (`kNoParent`), never bare `-1` or `-2` at the use sites.
 - **`constexpr`/`consteval`** for compile-time values and functions; `constexpr` over `#define` for constants.
 - **`nullptr`** over `NULL` or `0`, always: macro/integer overload-resolution surprises.
 - **Structured bindings** (C++17): `auto [key, value] = *it;` for pairs and tuples.
@@ -94,7 +101,10 @@ The language-agnostic naming doctrine (names as the primary documentation, speci
 
 - **Getters may omit the verb**: `size()`, `empty()`, `name()`.
 - **Template parameters**: single uppercase (`T`, `U`) for simple cases; descriptive names for constrained ones (`Container`, `Predicate`, `Allocator`).
-- **No Hungarian notation** (`strName`, `iCount`, `pUser`); `m_` or trailing `_` for members is acceptable.
+- **No Hungarian notation** (`strName`, `iCount`, `pUser`); a member prefix such as `m_` only where the codebase already uses one.
+- **No identifier that reads as a language word**: `final`, `override`, `import`, and `module` are ordinary identifiers to the compiler but read as specifiers (`options.final[i]`), so a flag is `is_final`. No name a standard macro owns (`assert`, `errno`).
+- **No name shared with a namespace alias in scope**: beside `namespace fs = std::filesystem;` a sampling-rate parameter `fs` compiles, because lookup before `::` ignores variables, but `fs::path` next to `fs * duration` reads as one name. Rename the alias or spell the namespace out.
+- **A type is named for what it holds**: a struct of indices into another container, not its elements, says so (`SelectedRows`, not `Order`). The object a function or class is built around never gets a single letter (`table_`, not `t_`); single letters are for loop indices.
 
 ### 5. Code Efficiency
 
@@ -171,6 +181,7 @@ Structural design is owned by the `software-design` skill; apply it for Single R
 
 - **Header/source separation**: declarations in `.h`/`.hpp`, definitions in `.cpp`; inline templates and constexpr in headers; headers include only what their declarations need.
 - **Namespaces reflect project structure**; don't dump everything into one namespace or the global one.
+- **One language per directory**: in a project that mixes languages, the C++ sits in its own tree (for a Python package, `cpp/<component>/` beside `src/`), never among the other language's modules, and the build points at it. The core includes no binding header and uses no binding type (`std::int64_t`, not `pybind11::ssize_t`), so it builds and can be tested without the interpreter; the binding is a file of its own (section 15).
 - **Enforce interfaces with the type system**: `explicit` on single-argument constructors, `[[nodiscard]]` where ignoring the result is a mistake, `= delete` on copy operations when copying makes no semantic sense.
 - **Templates for compile-time polymorphism** when the type set is open-ended; constrain with concepts (C++20) for clear error messages.
 
@@ -183,16 +194,56 @@ Skip this section for single-threaded code.
 - **Higher-level primitives first**: `std::async`, `std::jthread` (C++20), `std::atomic` for simple flags; raw mutexes only when needed.
 - **Const means thread-safe**: the standard library assumes `const` member functions are concurrently callable, so protect mutated internals (caches, lazy init) with `mutable std::mutex`.
 - **Data races are UB**: two threads, same non-atomic variable, at least one write. No exceptions. Catch with `-fsanitize=thread`.
+- **Join every thread on every path**: a `std::thread` still joinable when destroyed calls `std::terminate`, and starting one can throw `std::system_error`. A loop that starts workers therefore joins the ones already running, or does the work on the calling thread, when a later start fails. `std::jthread` (C++20) joins on destruction.
+- **No exception leaves a thread's function**: one that does calls `std::terminate`. Catch it in the worker, carry it back as `std::exception_ptr`, and rethrow it on the joining thread.
+- **Results independent of the thread count**: give each worker a contiguous share of the input and its own output buffer, combine the buffers in input order, and test that 1 and N threads give identical output.
 
 ### 12. Security & Defensive Practices
 
 - **Bounds checking**: `.at()` over `operator[]` at trust boundaries; `std::span` to pass arrays with their sizes; sanitizers (`-fsanitize=address,undefined`) in test builds.
-- **Integer safety**: check overflow before arithmetic on untrusted integers; heed signed/unsigned comparison warnings; `<cstdint>` fixed-width types when size matters.
+- **Integer safety**: check overflow before arithmetic on untrusted integers; heed signed/unsigned comparison warnings; `<cstdint>` fixed-width types when size matters. Before narrowing a value to the type an external format or API stores it in (a 64-bit id written to a 32-bit field), check it against that type's `std::numeric_limits` and refuse with the value: `static_cast` wraps without a word.
 - **No format string injection**: never pass user input as the format argument of `printf`-family functions; use `std::format` (C++20) or `fmt::format`.
 - **Secrets out of code**: no hardcoded API keys, passwords, or tokens; use environment variables or restricted-permission config files instead.
 - **Validate all external input** (file data, network payloads, command-line arguments) as hostile until validated.
 - **Warnings as errors**: `-Wall -Wextra -Wpedantic` minimum, `-Werror` in CI, clang-tidy with a project-appropriate set of checks.
 
+### 13. Floating Point and Number Formatting
+
+- **NaN fails every comparison except `!=`**: `x != 0` counts NaN as nonzero and `a == b` says two NaNs differ. A decision on a floating-point input that can be NaN or infinite tests `std::isfinite` first and handles those values on purpose. `-0.0 == 0.0` holds, though the two print differently.
+- **Formatting routines differ on non-finite values**: `std::to_chars` is locale-independent and gives `printf`'s digits for finite numbers, but standard libraries spell NaN and infinity in their own ways (some write a negative NaN as `-nan(ind)`). Output that must match a reference written with `printf` formats non-finite values with the call the reference uses.
+- **Test each class of value**: finite of both signs, `+0.0` and `-0.0`, both infinities, NaN of both signs, subnormals, and the type's extremes. When C++ replaces a reference implementation, compare the two on these values: the reference's semantics for them (NaN comparisons, overflow, rounding) are part of the contract the port inherits.
+
+### 14. Toolchain and Platform
+
+- **A library feature has its own minimum toolchain**, apart from the language standard: `-std=c++17` accepts floating-point `std::to_chars`, but only GCC 11's libstdc++, libc++ 14 (on macOS, deployment target 13.3), and MSVC 19.24 provide it. Check each library feature the code uses against cppreference's compiler-support tables, and state the resulting minimum where the build is configured and where users read the install requirements.
+- **Set the platform minimum explicitly**: build helpers apply their own default when the environment sets none (pybind11's setup helpers add an old macOS deployment target), and that default can be older than a feature needs.
+- **Published binaries carry the minimum in their tags**: from macOS 11 on, a wheel's platform tag keeps only the major version, so a binary that needs 13.3 is tagged 13.0 and installs where it cannot load. Build published wheels for the next major version (14.0).
+
+### 15. Python Bindings
+
+Skip this section for code without a binding. The examples use pybind11; nanobind and the CPython API raise the same points.
+
+- **A thin binding**: it checks what the core trusts (dimensions, lengths, dtypes), converts, calls the core, and converts back; no rule of the domain lives in it.
+- **No silent conversion of arrays**: an array argument bound without `.noconvert()` is converted, which copies the whole array when its dtype or layout differs, and with one overload per dtype lets an array of another dtype reach whichever overload accepts it after conversion. Refuse instead, and leave the conversion to the caller, where it is visible.
+- **Borrowed memory lives for the call**: a pointer into an argument array is valid until the bound function returns, and the core never keeps one.
+- **Release the interpreter lock around the core only**: after every Python object has been read and before any is created (`pybind11::gil_scoped_release` in its own scope).
+- **One copy into the result**: a large text or array result is built in place (`PyBytes_FromStringAndSize(nullptr, size)` filled from the core's buffers), not through a `std::string` that the conversion copies again.
+- **Python names on the Python side**: bound functions and keyword arguments follow PEP 8 (`snake_case`) whatever the C++ scheme, and a `.pyi` stub beside the module in the package declares them with their dtypes.
+
+## Quick Checklist Before Finishing
+
+The items most easily missed while writing; each points back to its section.
+
+- [ ] Names follow the codebase's scheme, or section 1's default; none reads as a language word or shares a namespace alias; sentinels are named constants (sections 1, 2, 4)
+- [ ] Every `if`/`for`/`while` body is braced, and includes are grouped in order (section 1)
+- [ ] `[[nodiscard]]` on every function whose result must be used: a success flag, a computed value (section 2)
+- [ ] Public declarations documented (section 3)
+- [ ] Every narrowing conversion range-checked; NaN and infinity handled on purpose in every floating-point decision (sections 12, 13)
+- [ ] Every thread joined on every path; no exception leaves a worker; output identical at 1 and N threads (section 11)
+- [ ] Each library feature's minimum toolchain stated in the build and the install requirements (section 14)
+- [ ] Built with `-Wall -Wextra -Wpedantic` and no warnings; sanitizers in test builds where the toolchain has them (section 12)
+- [ ] For a binding: the core is free of binding types, arrays are never converted silently, the interpreter lock is released around the core only, and the `.pyi` stub matches the bound names (sections 10, 15)
+
 ## How to Deliver the Review
 
-Review mode only: the response structure (brief assessment; the improved code as a complete, compilable replacement with its `#include` directives; key changes by category) and the mostly-fine and narrow-request provisions are defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md). For code in a larger codebase, the specifics to ask about first are the C++ standard version, compiler, project conventions (naming style, error handling strategy, smart pointer policy), and build system.
+Review mode only: the response structure (brief assessment; the improved code as a complete, compilable replacement with its `#include` directives; key changes by category) and the mostly-fine and narrow-request provisions are defined in [`../_shared/review-conduct.md`](../_shared/review-conduct.md). For code in a larger codebase, the specifics to ask about first are the C++ standard version, the compilers and platforms supported, project conventions (naming scheme, error handling strategy, smart pointer policy), and build system.
