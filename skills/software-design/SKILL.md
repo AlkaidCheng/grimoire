@@ -103,6 +103,9 @@ Prefer many small cleanups, each checked, over one giant refactor PR: smaller ri
 - **Write the interface comment first.** If the doc comment is hard to write, or explaining the interface requires describing messy internals, the *interface* is wrong; the comment caught it before you wrote the body.
 - **Keep names consistent across the API.** One verb per idea (mixing `get` / `fetch` / `load` makes readers wonder whether the difference means something) and matched pairs (`open` / `close`, `to` / `from`). Spotting the inconsistency is this skill's job; the rename is `code-polishing`'s.
 - **Keep one spelling per idea across surfaces.** A concept that appears as a command, a flag, a configuration key, a record key, a directory and an identifier under different names (`--log-level`, `logLevel`, `verbosity`) is a decision nobody made; a reader pays for the mapping at every boundary. Name a step after the action the user invokes, not the tool that performs it: the tool can change, the action is the contract. A name that differs across surfaces is a design finding because fixing it changes what the program writes and accepts.
+- **A name built on "without" or "except" is a prompt to look at ownership.** Often it is the right name: `rows_except_total` for a filtered collection that one part computes and uses. It is a design finding when the exclusion exists because two parts each hold a piece of one list, so that one part has to name what the other contributes. Then give each part its own piece (the base class contributes its item, the subclass extends the list) instead of naming around the split.
+- **A stored field that only repeats another field is a second copy of a fact.** Check what the field holds first: a `retry_reason` that records something the status of the previous attempt does not say is information and stays. When every value of the field follows from other fields of the same record, as an `is_empty` beside a count does, derive it where it is read, since two copies can disagree. A value of an enumeration must also read correctly on every record that can carry it.
+- **Check an option's name against its behavior in every state.** For a flag or a boolean parameter, write down what a newcomer expects from the name alone in each state the target can be in (never started, in progress, failed, finished, changed since). Where the behavior differs, change the name or the behavior. An option that raises an error in a state where its name says "carry on" is a design finding, not a documentation gap.
 
 ## The trade-offs: where judgment actually happens
 
@@ -131,6 +134,7 @@ A fast structural scan; each hit is a reason to look closer, not an automatic de
 - [ ] **Built for a future that isn't here**: an abstraction / config / hook with exactly one caller
 - [ ] **Structure and behavior mixed** in one commit is hard to review; split it
 - [ ] **Inconsistent names**: one idea, several verbs; a name you couldn't write cleanly; one concept spelled differently on the command line, on disk and in code
+- [ ] **Name built on an exclusion** (`x_without_y`), **field that may only repeat another field**, **option whose name and behavior part ways in some state**: look for a structural cause before renaming
 
 For each hit, name the symptom (one change touches many files / too much to hold in your head / can't tell what to change) and the root (a dependency, or something not being obvious), then route the fix: style to the language reviewers, cleanup to `code-polishing`, commit and PR shape to `code-delivery`.
 
