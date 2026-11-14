@@ -129,7 +129,16 @@ rg -n "\b[a-z_]+\._[A-Z_]+\b" src/  # tweak per language
 
 ### Categories 6 and 7: Naming consistency, and the renames that fix it
 
-The doctrine is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md): one verb per kind of operation (`read_X` vs `load_X` vs `fetch_X`), inverse pairs (`to_X`/`from_X`, `acquire_X`/`release_X`), a suffix that says which representation a value is (`config`, `config_text`, `config_path`, `config_dir`), booleans as questions, units on quantities, one spelling per idea on every surface. No grep finds an inconsistent verb or a noun that hides a path: list the public surface (functions, parameters, dataclass fields, module names) in one table and read it as a whole.
+The doctrine is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md): one verb per kind of operation (`read_X` vs `load_X` vs `fetch_X`), inverse pairs (`to_X`/`from_X`, `acquire_X`/`release_X`), a suffix that says which representation a value is (`config`, `config_text`, `config_path`, `config_dir`), booleans as questions, units on quantities, one spelling per idea on every surface. No grep finds an inconsistent verb or a noun that hides a path: list the public surface (functions, parameters, dataclass fields, module names) in one table and read it as a whole. For a change under review the list is wider: every identifier the change introduces, private ones included (locals, constants, helpers, record and configuration keys, report labels, test helpers and fixtures), as the doctrine's last rule describes.
+
+Two searches list candidates to read; a match is not yet a finding:
+
+```bash
+# a name built on an exclusion: check who owns the excluded part (software-design)
+rg -n --type-add 'src:*.{py,pyi,c,cc,cpp,h,hpp}' -tsrc "\b[a-z0-9_]+_(without|except)_[a-z0-9_]+\b" .
+# a test name with two conjunctions: check that the test covers one behavior
+rg -n "def test_\w+_and_\w+_and_\w+" tests/
+```
 
 **Deliver the review before the rename.** Group the findings by the rule they break, name the replacement for each, and add the names kept on purpose with the reason (a noun-named pure getter, a domain word that looks odd out of context), so the owner sees every decision. Where two conventions are both common (`_file` or `_path`; `load_` or `read_`), the choice is the owner's: recommend one, say what would flip it, and apply it package-wide only after the ruling.
 
@@ -214,6 +223,7 @@ Files:
 - [ ] Docstrings/comments read as professional reference prose: no conversational artifacts, reader asides, editorial flourishes, or edit-history narration; no text organized around removed code (Category 1)
 - [ ] Comments and docstrings use the repository's plain vocabulary: no delivery metaphors (ship, render, fence, gate, surface), quality adjectives, filler openers, or words borrowed from safety or operations talk (vouch, hazard, blast radius) unless the term is the thing's actual name (Category 10)
 - [ ] No personal/sensitive/device info in any committed file: identifiers, machine/hardware specs, host paths, secrets (Category 8)
+- [ ] Every identifier the change introduces read as one list against the naming doctrine, tests and fixtures included (Categories 6 and 7)
 - [ ] Findings categorized; one commit per category
 - [ ] Commits ordered least-risky to most-risky
 - [ ] Full test suite + lint + type-check pass after each commit
