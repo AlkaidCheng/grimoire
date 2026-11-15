@@ -22,7 +22,7 @@ Format with **Black** defaults (88-character lines); **PEP 8** for everything Bl
 
 The language-agnostic naming doctrine (names as the primary documentation, specific over generic, the representation a value is, verb-led functions, one verb per operation, booleans as questions, units on quantities, one spelling per idea, domain vocabulary) is in [`../_shared/naming-and-comments.md`](../_shared/naming-and-comments.md). Python adds:
 
-- **Standard casing**: `snake_case` functions/methods/variables/modules; `PascalCase` classes; `UPPER_SNAKE_CASE` module constants; leading `_` signals internal. Never `l`, `O`, or `I` as single-letter names.
+- **Standard casing**: `snake_case` functions/methods/variables/modules; `PascalCase` classes, an acronym kept in capitals (`LHEFile`, `HTTPServerError`, as PEP 8 asks); `UPPER_SNAKE_CASE` module constants; leading `_` signals internal. Never `l`, `O`, or `I` as single-letter names.
 - **Python-flavored generics count as generic**: `arr`, `df`, `lst` are no better than `data` or `tmp` as substantive names.
 - **Loop variables**: `for user in users`, not `for u in users` or `for item in users`. Single letters only for numeric indices (`for i in range(n)`) or trivially short comprehensions.
 
